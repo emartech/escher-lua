@@ -1,6 +1,12 @@
 local crypto = require("crypto")
 local Escher = {
-  hashAlgo = 'SHA256'
+  algoPrefix      = 'ESR',
+  vendorKey       = 'Escher',
+  hashAlgo        = 'SHA256',
+  credentialScope = 'escher_request',
+  authHeaderName  = 'X-Escher-Auth',
+  dateHeaderName  = 'X-Escher-Date',
+  clockSkew       = 900
 }
 
 function Escher:new(o)
