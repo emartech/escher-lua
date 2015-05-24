@@ -11,13 +11,16 @@ In order to run the tests, Lua, LuaRocks and some libraries must be installed.
 Setup
 -----
 
-Some tips to setup the local development environment:
+Some tips to setup the local development environment on a Mac:
 
 ```bash
 brew install lua
 brew install cmake
+luarocks-5.2 install luafilesystem
 luarocks-5.2 install busted
 luarocks-5.2 install json
+luarocks-5.2 install luacrypto
+luarocks-5.2 install date
 ```
 
 Run the tests
