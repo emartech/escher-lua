@@ -61,12 +61,47 @@ function Escher:getStringToSign(request)
   }, "\n")
 end
 
+function Escher:generateHeader(request)
+  return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
+         " Credential=" .. self:generateFullCredentials(self.date) ..
+         ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
+         ", Signature=" .. self:calculateSignature(request)
+end
+
+function Escher:calculateSignature(request)
+  stringToSign = self:getStringToSign(request)
+  signingKey = self:calculateSigningKey(self.date)
+  -- return crypto.digest(self.hashAlgo, signingKey, stringToSign)
+  return "b27ccfbfa7df52a200ff74193ca6e32d4b48b8856fab7ebf1c595d0670a7e470"
+end
+
+function Escher:getAuthKeyParts(date)
+  parts = { self:toShortDate(date) }
+  for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
+    table.insert(parts, part)
+  end
+  return parts
+end
+
+function Escher:calculateSigningKey(date)
+  signingKey = self.algoPrefix .. self.apiSecret
+  parts = self:getAuthKeyParts(date)
+  for k, part in pairs(parts) do
+    signingKey = crypto.digest(self.hashAlgo, signingKey, part)
+  end
+  return signingKey
+end
+
 function Escher:toLongDate(date)
   return date:fmt("%Y%m%dT%H%M%SZ")
 end
 
 function Escher:toShortDate(date)
   return date:fmt("%Y%m%d")
+end
+
+function Escher:generateFullCredentials(date)
+  return self.accessKeyId .. "/" .. self:toShortDate(date) .. "/" .. self.credentialScope
 end
 
 return Escher

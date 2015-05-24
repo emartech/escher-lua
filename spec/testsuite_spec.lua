@@ -17,6 +17,8 @@ function getConfigFromTestsuite(config)
     credentialScope = test.config.credentialScope,
     authHeaderName = test.config.authHeaderName,
     dateHeaderName = test.config.dateHeaderName,
+    accessKeyId = test.config.accessKeyId,
+    apiSecret = test.config.apiSecret,
     date = test.config.date
   }
 end
@@ -50,6 +52,17 @@ describe("Escher TestSuite", function()
       escher = Escher:new(getConfigFromTestsuite(test.config))
       canonicalized_request = escher:getStringToSign(test.request)
       assert.are.equals(test.expected.stringToSign, canonicalized_request)
+    end)
+
+  end)
+
+  describe('generateHeader', function()
+
+    it("should return the proper authHeader string", function()
+      test = readTest('spec/aws4_testsuite/get-vanilla.json')
+      escher = Escher:new(getConfigFromTestsuite(test.config))
+      authHeader = escher:generateHeader(test.request)
+      assert.are.equals(test.expected.authHeader, authHeader)
     end)
 
   end)
