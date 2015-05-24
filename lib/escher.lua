@@ -1,6 +1,6 @@
 local crypto = require("crypto")
 local date = require("date")
-local urlparser = require("socket.url")
+local urlhandler = require("escher.urlhandler")
 local Escher = {
   algoPrefix      = 'ESR',
   vendorKey       = 'Escher',
@@ -21,12 +21,13 @@ function Escher:new(o)
 end
 
 function Escher:canonicalizeRequest(request)
-  url = urlparser.parse(request.url)
+  url = urlhandler.parse(request.url)
+  url:normalize()
   headers = request.headers
   return table.concat({
     request.method,
     url.path,
-    url.query or '',
+    self:canonicalizeQuery(url.query or ""),
     self:canonicalizeHeaders(headers),
     "",
     self:canonicalizeSignedHeaders(headers),
@@ -41,6 +42,7 @@ function Escher:canonicalizeHeaders(headers)
     n = n+1
     normalizedHeaders[n] = header[1]:lower() .. ":" .. header[2]
   end
+  table.sort(normalizedHeaders)
   return table.concat(normalizedHeaders, "\n")
 end
 
@@ -51,6 +53,7 @@ function Escher:canonicalizeSignedHeaders(headers)
     n = n+1
     normalizedKeys[n] = header[1]:lower()
   end
+  table.sort(normalizedKeys)
   return table.concat(normalizedKeys, ";")
 end
 
@@ -61,6 +64,49 @@ function Escher:getStringToSign(request)
     self:toShortDate(self.date) .. "/" .. self.credentialScope,
     crypto.digest(self.hashAlgo, self:canonicalizeRequest(request))
   }, "\n")
+end
+
+function Escher:canonicalizeQuery(queryString)
+  query = {}
+  for k, v in string.gmatch(queryString, "([^&=?]+)=([^&=?]+)") do
+    table.insert(query, self:urlEncode(self:urlDecode(k)) .. '=' .. self:urlEncode(self:urlDecode(v)))
+  end
+  table.sort(query)
+  return table.concat(query, "&")
+end
+
+function Escher:normalizePath(base_path)
+  relative_path = ''
+	local path = base_path or ''
+	if relative_path ~= "" then
+		path = '/'..path:gsub("[^/]*$", "")
+	end
+	path = path .. relative_path
+	path = path:gsub("([^/]*%./)", function (s)
+		if s ~= "./" then return s else return "" end
+	end)
+	path = string.gsub(path, "/%.$", "/")
+	local reduced
+	while reduced ~= path do
+		reduced = path
+		path = string.gsub(reduced, "([^/]*/%.%./)", function (s)
+			if s ~= "../../" then return "" else return s end
+		end)
+	end
+	path = string.gsub(path, "([^/]*/%.%.?)$", function (s)
+		if s ~= "../.." then return "" else return s end
+	end)
+	local reduced
+	while reduced ~= path do
+		reduced = path
+		path = string.gsub(reduced, '^/?%.%./', '')
+	end
+  path = path:gsub("//+", "/")
+  if path == '' then
+    return "/"
+  else
+    return path
+	end
 end
 
 function Escher:generateHeader(request)
@@ -103,6 +149,24 @@ end
 
 function Escher:generateFullCredentials(date)
   return self.accessKeyId .. "/" .. self:toShortDate(date) .. "/" .. self.credentialScope
+end
+
+function Escher:urlDecode(str)
+  str = string.gsub (str, "+", " ")
+  str = string.gsub (str, "%%(%x%x)",
+      function(h) return string.char(tonumber(h,16)) end)
+  str = string.gsub (str, "\r\n", "\n")
+  return str
+end
+
+function Escher:urlEncode(str)
+  if (str) then
+    str = string.gsub (str, "\n", "\r\n")
+    str = string.gsub (str, "([^%w %-%_%.%~])",
+        function (c) return string.format ("%%%02X", string.byte(c)) end)
+    str = string.gsub (str, " ", "+")
+  end
+  return str
 end
 
 return Escher
