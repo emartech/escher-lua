@@ -13,5 +13,6 @@ install:
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
   - sudo luarocks install json
+  - sudo luarocks install luacrypto
 
 script: "busted spec"
