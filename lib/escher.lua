@@ -27,7 +27,7 @@ function Escher:canonicalizeRequest(request)
   return table.concat({
     request.method,
     url.path,
-    self:canonicalizeQuery(url.query or ""),
+    url.query,
     self:canonicalizeHeaders(headers),
     "",
     self:canonicalizeSignedHeaders(headers),
@@ -37,21 +37,33 @@ end
 
 function Escher:canonicalizeHeaders(headers)
   local normalizedHeaders = {}
-  local n = 0
-  for k, header in pairs(headers) do
-    n = n+1
-    normalizedHeaders[n] = header[1]:lower() .. ":" .. header[2]
+  for k, header in ipairs(headers) do
+    name = header[1]:lower():match("^%s*(.-)%s*$")
+    value = self:normalizeWhiteSpacesInHeaderValue(header[2])
+    table.insert(normalizedHeaders, { name, value })
   end
-  table.sort(normalizedHeaders)
-  return table.concat(normalizedHeaders, "\n")
+  local groupedHeaders = {}
+  local lastKey = false
+  for _, header in ipairs(normalizedHeaders) do
+    if lastKey == header[1] then
+      groupedHeaders[#groupedHeaders] = string.format('%s,%s', groupedHeaders[#groupedHeaders], header[2])
+    else
+      table.insert(groupedHeaders, string.format('%s:%s', header[1], header[2]))
+    end
+    lastKey = header[1]
+  end
+  table.sort(groupedHeaders)
+  return table.concat(groupedHeaders, "\n")
 end
 
 function Escher:canonicalizeSignedHeaders(headers)
-  local normalizedKeys = {}
-  local n = 0
+  local uniqueKeys = {}
   for k, header in pairs(headers) do
-    n = n+1
-    normalizedKeys[n] = header[1]:lower()
+    uniqueKeys[header[1]:lower()] = true
+  end
+  local normalizedKeys = {}
+  for k, _ in pairs(uniqueKeys) do
+    table.insert(normalizedKeys, k)
   end
   table.sort(normalizedKeys)
   return table.concat(normalizedKeys, ";")
@@ -59,54 +71,23 @@ end
 
 function Escher:getStringToSign(request)
   return table.concat({
-    self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
+    string.format('%s-HMAC-%s', self.algoPrefix, self.hashAlgo),
     self:toLongDate(self.date),
-    self:toShortDate(self.date) .. "/" .. self.credentialScope,
+    string.format('%s/%s', self:toShortDate(self.date), self.credentialScope),
     crypto.digest(self.hashAlgo, self:canonicalizeRequest(request))
   }, "\n")
 end
 
-function Escher:canonicalizeQuery(queryString)
-  query = {}
-  for k, v in string.gmatch(queryString, "([^&=?]+)=([^&=?]+)") do
-    table.insert(query, self:urlEncode(self:urlDecode(k)) .. '=' .. self:urlEncode(self:urlDecode(v)))
+function Escher:normalizeWhiteSpacesInHeaderValue(value)
+  value = string.format(" %s ", value)
+  normalizedValue = {}
+  n = 0
+  for part in string.gmatch(value, '[^"]+') do
+    n = n + 1
+    if n % 2 == 1 then part = part:gsub("%s+", " ") end
+    table.insert(normalizedValue, part)
   end
-  table.sort(query)
-  return table.concat(query, "&")
-end
-
-function Escher:normalizePath(base_path)
-  relative_path = ''
-	local path = base_path or ''
-	if relative_path ~= "" then
-		path = '/'..path:gsub("[^/]*$", "")
-	end
-	path = path .. relative_path
-	path = path:gsub("([^/]*%./)", function (s)
-		if s ~= "./" then return s else return "" end
-	end)
-	path = string.gsub(path, "/%.$", "/")
-	local reduced
-	while reduced ~= path do
-		reduced = path
-		path = string.gsub(reduced, "([^/]*/%.%./)", function (s)
-			if s ~= "../../" then return "" else return s end
-		end)
-	end
-	path = string.gsub(path, "([^/]*/%.%.?)$", function (s)
-		if s ~= "../.." then return "" else return s end
-	end)
-	local reduced
-	while reduced ~= path do
-		reduced = path
-		path = string.gsub(reduced, '^/?%.%./', '')
-	end
-  path = path:gsub("//+", "/")
-  if path == '' then
-    return "/"
-  else
-    return path
-	end
+  return table.concat(normalizedValue, '"'):match("^%s*(.-)%s*$")
 end
 
 function Escher:generateHeader(request)
