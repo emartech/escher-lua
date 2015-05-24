@@ -24,7 +24,8 @@ describe("Escher TestSuite", function()
 
     it("should return the right canonicalized string", function()
       test = readTest('spec/aws4_testsuite/get-vanilla.json')
-      canonicalized_request = Escher.canonicalizeRequest(test.request)
+      escher = Escher:new()
+      canonicalized_request = escher:canonicalizeRequest(test.request)
       assert.are.equals(test.expected.canonicalizedRequest, canonicalized_request)
     end)
 
