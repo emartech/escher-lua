@@ -21,8 +21,7 @@ function Escher:new(o)
 end
 
 function Escher:canonicalizeRequest(request)
-  url = urlhandler.parse(request.url)
-  url:normalize()
+  url = urlhandler.parse(request.url):normalize()
   headers = request.headers
   return table.concat({
     request.method,
@@ -72,8 +71,8 @@ end
 function Escher:getStringToSign(request)
   return table.concat({
     string.format('%s-HMAC-%s', self.algoPrefix, self.hashAlgo),
-    self:toLongDate(self.date),
-    string.format('%s/%s', self:toShortDate(self.date), self.credentialScope),
+    self:toLongDate(),
+    string.format('%s/%s', self:toShortDate(), self.credentialScope),
     crypto.digest(self.hashAlgo, self:canonicalizeRequest(request))
   }, "\n")
 end
@@ -92,62 +91,30 @@ end
 
 function Escher:generateHeader(request)
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
-         " Credential=" .. self:generateFullCredentials(self.date) ..
+         " Credential=" .. self:generateFullCredentials() ..
          ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
          ", Signature=" .. self:calculateSignature(request)
 end
 
 function Escher:calculateSignature(request)
   stringToSign = self:getStringToSign(request)
-  signingKey = self:calculateSigningKey(self.date)
+  signingKey = crypto.hmac.digest(self.hashAlgo, self:toShortDate(), self.algoPrefix .. self.apiSecret, true)
+  for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
+    signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
+  end
   return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
 end
 
-function Escher:getAuthKeyParts(date)
-  parts = { self:toShortDate(date) }
-  for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
-    table.insert(parts, part)
-  end
-  return parts
+function Escher:toLongDate()
+  return self.date:fmt("%Y%m%dT%H%M%SZ")
 end
 
-function Escher:calculateSigningKey(date)
-  signingKey = self.algoPrefix .. self.apiSecret
-  parts = self:getAuthKeyParts(date)
-  for k, part in pairs(parts) do
-    signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
-  end
-  return signingKey
+function Escher:toShortDate()
+  return self.date:fmt("%Y%m%d")
 end
 
-function Escher:toLongDate(date)
-  return date:fmt("%Y%m%dT%H%M%SZ")
-end
-
-function Escher:toShortDate(date)
-  return date:fmt("%Y%m%d")
-end
-
-function Escher:generateFullCredentials(date)
-  return self.accessKeyId .. "/" .. self:toShortDate(date) .. "/" .. self.credentialScope
-end
-
-function Escher:urlDecode(str)
-  str = string.gsub (str, "+", " ")
-  str = string.gsub (str, "%%(%x%x)",
-      function(h) return string.char(tonumber(h,16)) end)
-  str = string.gsub (str, "\r\n", "\n")
-  return str
-end
-
-function Escher:urlEncode(str)
-  if (str) then
-    str = string.gsub (str, "\n", "\r\n")
-    str = string.gsub (str, "([^%w %-%_%.%~])",
-        function (c) return string.format ("%%%02X", string.byte(c)) end)
-    str = string.gsub (str, " ", "+")
-  end
-  return str
+function Escher:generateFullCredentials()
+  return string.format("%s/%s/%s", self.accessKeyId, self:toShortDate(), self.credentialScope)
 end
 
 return Escher
