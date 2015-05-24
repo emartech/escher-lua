@@ -1,4 +1,3 @@
-
 describe("Empty test", function()
 
   describe("should work", function()
