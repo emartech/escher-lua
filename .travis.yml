@@ -12,5 +12,6 @@ install:
   - sudo apt-get install luarocks
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
+  - sudo luarocks install json
 
 script: "busted spec"
