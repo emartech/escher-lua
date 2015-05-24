@@ -1,5 +1,6 @@
 local crypto = require("crypto")
 local date = require("date")
+local urlparser = require("socket.url")
 local Escher = {
   algoPrefix      = 'ESR',
   vendorKey       = 'Escher',
@@ -20,11 +21,12 @@ function Escher:new(o)
 end
 
 function Escher:canonicalizeRequest(request)
+  url = urlparser.parse(request.url)
   headers = request.headers
   return table.concat({
     request.method,
-    request.url,
-    "",
+    url.path,
+    url.query or '',
     self:canonicalizeHeaders(headers),
     "",
     self:canonicalizeSignedHeaders(headers),
@@ -71,8 +73,7 @@ end
 function Escher:calculateSignature(request)
   stringToSign = self:getStringToSign(request)
   signingKey = self:calculateSigningKey(self.date)
-  -- return crypto.digest(self.hashAlgo, signingKey, stringToSign)
-  return "b27ccfbfa7df52a200ff74193ca6e32d4b48b8856fab7ebf1c595d0670a7e470"
+  return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
 end
 
 function Escher:getAuthKeyParts(date)
@@ -87,7 +88,7 @@ function Escher:calculateSigningKey(date)
   signingKey = self.algoPrefix .. self.apiSecret
   parts = self:getAuthKeyParts(date)
   for k, part in pairs(parts) do
-    signingKey = crypto.digest(self.hashAlgo, signingKey, part)
+    signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
   end
   return signingKey
 end
