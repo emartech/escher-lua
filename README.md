@@ -23,7 +23,7 @@ luarocks-5.2 install json
 Run the tests
 -------------
 
-To run all the tests, use the `busted` command.
+To run all the tests, use the `LUA="luajit" LUA_PATH="lib/?.lua;;" busted` command.
 
 About Escher
 ------------
