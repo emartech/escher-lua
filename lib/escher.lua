@@ -1,4 +1,5 @@
 local crypto = require("crypto")
+local date = require("date")
 local Escher = {
   algoPrefix      = 'ESR',
   vendorKey       = 'Escher',
@@ -6,11 +7,13 @@ local Escher = {
   credentialScope = 'escher_request',
   authHeaderName  = 'X-Escher-Auth',
   dateHeaderName  = 'X-Escher-Date',
-  clockSkew       = 900
+  clockSkew       = 900,
+  date            = false
 }
 
 function Escher:new(o)
   o = o or {}
+  o.date = date(o.date)
   setmetatable(o, self)
   self.__index = self
   return o
@@ -47,6 +50,23 @@ function Escher:canonicalizeSignedHeaders(headers)
     normalizedKeys[n] = header[1]:lower()
   end
   return table.concat(normalizedKeys, ";")
+end
+
+function Escher:getStringToSign(request)
+  return table.concat({
+    self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
+    self:toLongDate(self.date),
+    self:toShortDate(self.date) .. "/" .. self.credentialScope,
+    crypto.digest(self.hashAlgo, self:canonicalizeRequest(request))
+  }, "\n")
+end
+
+function Escher:toLongDate(date)
+  return date:fmt("%Y%m%dT%H%M%SZ")
+end
+
+function Escher:toShortDate(date)
+  return date:fmt("%Y%m%d")
 end
 
 return Escher

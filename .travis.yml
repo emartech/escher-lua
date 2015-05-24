@@ -14,5 +14,6 @@ install:
   - sudo luarocks install busted
   - sudo luarocks install json
   - sudo luarocks install luacrypto
+  - sudo luarocks install date
 
 script: "busted spec"
