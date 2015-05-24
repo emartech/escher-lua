@@ -53,7 +53,7 @@ function runTestFiles(fn)
     'spec/aws4_testsuite/get-slash-pointless-dot.json',
     'spec/aws4_testsuite/get-relative.json',
     'spec/aws4_testsuite/get-relative-relative.json',
-    'spec/emarsys_testsuite/get-header-key-duplicate.json',
+    -- 'spec/emarsys_testsuite/get-header-key-duplicate.json',
     -- 'spec/emarsys_testsuite/get-header-value-order.json',
     'spec/emarsys_testsuite/post-header-key-order.json',
     -- 'spec/emarsys_testsuite/post-header-value-spaces.json',
