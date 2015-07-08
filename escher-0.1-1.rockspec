@@ -1,0 +1,17 @@
+package = "Escher"
+version = "0.1-1"
+source = {
+    url = "https://github.com/emartech/escher-lua",
+    tag = "0.1",
+}
+description = {
+    summary = "Lua implementation of the Escher HTTP request signing library",
+    homepage = "https://github.com/emartech/escher-lua/",
+    license = "MIT"
+}
+dependencies = {
+    "luafilesystem",
+    "json",
+    "luacrypto",
+    "date",
+}
