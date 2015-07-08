@@ -15,3 +15,10 @@ dependencies = {
     "luacrypto",
     "date",
 }
+build = {
+    type = "builtin",
+    modules = {
+        ["escher"] = "lib/escher.lua",
+        ["escher.urlhandler"] = "lib/escher/urlhandler.lua",
+    }
+}
