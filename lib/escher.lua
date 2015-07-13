@@ -20,9 +20,32 @@ function Escher:new(o)
   return o
 end
 
+function Escher:authenticate(request)
+  local url = urlhandler.parse(request.url):normalize()
+  local requestDate = date(self:getHeader(request.headers, self.dateHeaderName))
+  local authParts = self:parseAuthHeader(request)
+
+  if authParts.hashAlgo ~= self.hashAlgo then
+    return false
+  end
+
+  if authParts.signature ~= self:calculateSignature(request) then
+    return false
+  end
+end
+
+function Escher:getHeader(headers, headerName)
+  for k, header in pairs(headers) do
+    name = header[1]:lower():match("^%s*(.-)%s*$")
+    if name == headerName then
+      return header[2]
+    end
+  end
+end
+
 function Escher:canonicalizeRequest(request)
-  url = urlhandler.parse(request.url):normalize()
-  headers = request.headers
+  local url = urlhandler.parse(request.url):normalize()
+  local headers = request.headers
   return table.concat({
     request.method,
     url.path,
@@ -103,6 +126,23 @@ function Escher:calculateSignature(request)
     signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
   end
   return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
+end
+
+function Escher:parseAuthHeader(request)
+  local authHeader = self:getHeader(request.header, self.authHeader)
+  local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature =
+      string.match(authheader, self.algoPrefix ..
+      "-HMAC-([A-Za-z0-9\\,]+) " ..
+      "Credential=([A-Za-z0-9\\-_]+)\\/([0-9]{8})\\/([A-Za-z0-9\\-_\\/]+)," ..
+      "SignedHeaders=([A-Za-z\\-;]+)")
+  return {
+    hashAlgo = hashAlgo,
+    accessKeyId = accessKeyId,
+    shortDate = shortDate,
+    credentialScope = credentialScope,
+    signedHeaders = signedHeaders,
+    signature = signature
+  }
 end
 
 function Escher:toLongDate()
