@@ -1,6 +1,5 @@
-
 local json = require("json")
-local Escher = require("escher")
+local Escher = require("lib.escher")
 
 function readTest(filename)
     local f = io.open(filename, "r")
@@ -62,8 +61,18 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/post-payload-utf8.json'
     },
     validation = {
-      'spec/emarsys_testsuite/valid-get-vanilla-empty-query.json'
+      'spec/emarsys_testsuite/valid-get-vanilla-empty-query.json',
+      'spec/emarsys_testsuite/valid-authentication-datein-expiretime.json',
+      'spec/emarsys_testsuite/invalid-authentication-requestdate-expired.json',
+      'spec/emarsys_testsuite/invalid-authentication-requestdate-credentialdate-notequal.json',
+      'spec/emarsys_testsuite/invalid-authentication-apisecret-nill.json',
+      'spec/emarsys_testsuite/invalid-authentication-credentials.json',
+      'spec/emarsys_testsuite/invalid-authentication-hostheader-notsigned.json',
+      'spec/emarsys_testsuite/invalid-authentication-dateheader-notsigned.json',
+      'spec/emarsys_testsuite/invalid-authentication-algorithm-wrong.json',
+      'spec/emarsys_testsuite/invalid-authentication-missingauthheader.json'
     }
+
   }
   for k, testFile in pairs(testFiles[group]) do
     fn(testFile)
@@ -126,9 +135,24 @@ describe("Escher TestSuite", function()
       it("should validate the request", function()
         local test = readTest(testFile)
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local response = escher:authenticate(test.request)
-        assert.are.equals(true, response)
+        local getApiSecret = function(key)
+          for _, element in pairs(test.keyDb) do
+            if element[1] == key then
+              return element[2]
+            end
+          end
+        end
+        local apiKey, err = escher:authenticate(test.request, getApiSecret)
+        if test.expected.apiKey then
+          assert.are.equals(nil, err)
+          assert.are.equals(test.expected.apiKey, apiKey)
+        end
+        if test.expected.error then
+          assert.are.equals(test.expected.error, err)
+          assert.are.equals(false, apiKey)
+        end
       end)
+
     end)
 
   end)

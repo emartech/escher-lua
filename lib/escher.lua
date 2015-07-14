@@ -1,6 +1,6 @@
 local crypto = require("crypto")
 local date = require("date")
-local urlhandler = require("escher.urlhandler")
+local urlhandler = require("lib.escher.urlhandler")
 local Escher = {
   algoPrefix      = 'ESR',
   vendorKey       = 'Escher',
@@ -20,23 +20,63 @@ function Escher:new(o)
   return o
 end
 
-function Escher:authenticate(request)
-  local url = urlhandler.parse(request.url):normalize()
-  local requestDate = date(self:getHeader(request.headers, self.dateHeaderName))
-  local authParts = self:parseAuthHeader(request)
+function Escher:authenticate(request, getApiSecret)
+
+  local authHeader = self:getHeader(request.headers, self.authHeaderName)
+  local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
+
+  if authHeader == nil then
+    return self.dropError("Missisng header: " .. self.authHeaderName)
+  end
+
+  if dateHeader == nil then
+    return self.dropError("Missisng header: " .. self.dateHeaderName)
+  end
+
+  local requestDate = date(dateHeader)
+  local authParts = self:parseAuthHeader(authHeader)
+  local apiSecret = getApiSecret(authParts.accessKeyId)
+
+  if apiSecret == nil then
+    return self.dropError("Invalid API key")
+  end
 
   if authParts.hashAlgo ~= self.hashAlgo then
-    return false
+    return self.dropError("Only SHA256 hash algorithms are allowed")
   end
 
-  if authParts.signature ~= self:calculateSignature(request) then
-    return false
+  if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then
+    return self.dropError("The credential date does not match with the request date")
   end
+
+  if not self:isDateWithinRange(requestDate, self.clockSkew) then
+    return self.dropError("The request date is not within the accepted time range")
+  end
+
+  if authParts.credentialScope ~= self.credentialScope then
+    return self.dropError("Invalid credentials")
+  end
+
+  if not string.match(authParts.signedHeaders, "host") then
+    return self.dropError("Host header is not signed")
+  end
+
+  if not string.match(authParts.signedHeaders, "date") then
+    return self.dropError("Date header is not signed")
+  end
+
+  self.apiSecret = apiSecret
+  self.date = date(requestDate)
+  if authParts.signature ~= self:calculateSignature(request) then
+    return self.dropError("The signatures do not match")
+  end
+
+  return authParts.accessKeyId
 end
 
 function Escher:getHeader(headers, headerName)
-  for k, header in pairs(headers) do
-    name = header[1]:lower():match("^%s*(.-)%s*$")
+  for k, header in ipairs(headers) do
+    name = header[1]:match("^%s*(.-)%s*$")
     if name == headerName then
       return header[2]
     end
@@ -61,8 +101,10 @@ function Escher:canonicalizeHeaders(headers)
   local normalizedHeaders = {}
   for k, header in ipairs(headers) do
     name = header[1]:lower():match("^%s*(.-)%s*$")
-    value = self:normalizeWhiteSpacesInHeaderValue(header[2])
-    table.insert(normalizedHeaders, { name, value })
+    if name ~= self.authHeaderName:lower() then
+      value = self:normalizeWhiteSpacesInHeaderValue(header[2])
+      table.insert(normalizedHeaders, { name, value })
+    end
   end
   local groupedHeaders = {}
   local lastKey = false
@@ -81,7 +123,10 @@ end
 function Escher:canonicalizeSignedHeaders(headers)
   local uniqueKeys = {}
   for k, header in pairs(headers) do
-    uniqueKeys[header[1]:lower()] = true
+    local name = header[1]:lower()
+    if name ~= self.authHeaderName:lower() then
+      uniqueKeys[name] = true
+    end
   end
   local normalizedKeys = {}
   for k, _ in pairs(uniqueKeys) do
@@ -128,13 +173,12 @@ function Escher:calculateSignature(request)
   return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
 end
 
-function Escher:parseAuthHeader(request)
-  local authHeader = self:getHeader(request.header, self.authHeader)
-  local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature =
-      string.match(authheader, self.algoPrefix ..
-      "-HMAC-([A-Za-z0-9\\,]+) " ..
-      "Credential=([A-Za-z0-9\\-_]+)\\/([0-9]{8})\\/([A-Za-z0-9\\-_\\/]+)," ..
-      "SignedHeaders=([A-Za-z\\-;]+)")
+function Escher:parseAuthHeader(authHeader)
+  local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature = string.match(authHeader,
+    "AWS4%-HMAC%-(%w+)%s+" ..
+    "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/]-),%s*" ..
+    "SignedHeaders=-([A-Za-z0-9\\;]+),%s+" ..
+    "Signature=-([a-f0-9]+)")
   return {
     hashAlgo = hashAlgo,
     accessKeyId = accessKeyId,
@@ -155,6 +199,15 @@ end
 
 function Escher:generateFullCredentials()
   return string.format("%s/%s/%s", self.accessKeyId, self:toShortDate(), self.credentialScope)
+end
+
+function Escher:isDateWithinRange(request_date, skew)
+  local diff = math.abs(date.diff(self.date, request_date):spanseconds())
+  return diff <= skew
+end
+
+function Escher.dropError(error)
+  return false, error
 end
 
 return Escher
