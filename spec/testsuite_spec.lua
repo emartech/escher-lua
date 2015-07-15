@@ -75,6 +75,9 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/invalid-authentication-missingdateheader.json',
       'spec/emarsys_testsuite/invalid-authentication-missinghostheader.json',
       'spec/emarsys_testsuite/invalid-authentication-algorithmprefix-invalid.json'
+    },
+    preSign = {
+      'spec/emarsys_testsuite/config-escher-signurl.json'
     }
 
   }
@@ -161,4 +164,24 @@ describe("Escher TestSuite", function()
 
   end)
 
+  describe('preSign', function()
+    runTestFiles("preSign", function(testFile)
+      it("should return the expected signed url", function()
+        local test = readTest(testFile)
+        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local expectedUrl =
+                'http://example.com/something?foo=bar&' .. 'baz=barbaz&' ..
+                'X-EMS-Algorithm=EMS-HMAC-SHA256&' ..
+                'X-EMS-Credentials=th3K3y%2F20110511%2Fus-east-1%2Fhost%2Faws4_request&' ..
+                'X-EMS-Date=20110511T120000Z&' ..
+                'X-EMS-Expires=123456&' ..
+                'X-EMS-SignedHeaders=host&' ..
+                'X-EMS-Signature=fbc9dbb91670e84d04ad2ae7505f4f52ab3ff9e192b8233feeae57e9022c2b67'
+
+        local client = {apiKeyId = 'th3K3y', apiSecret = 'very_secure' }
+        assert.same(expectedUrl, escher:generateSignedUrl('http://example.com/something?foo=bar&baz=barbaz', client, 123456))
+
+      end)
+    end)
+  end)
 end)

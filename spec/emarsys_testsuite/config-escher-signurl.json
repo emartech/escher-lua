@@ -1,0 +1,12 @@
+{
+  "config": {
+    "vendorKey": "EMS",
+    "algoPrefix": "EMS",
+    "hashAlgo": "SHA256",
+    "clockSkew": 10,
+    "credentialScope": "us-east-1/host/aws4_request",
+    "authHeaderName": "Authorization",
+    "dateHeaderName": "Date",
+    "date": "2011-05-11T12:00:00.000Z"
+  }
+}

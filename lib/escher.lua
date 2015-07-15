@@ -1,3 +1,4 @@
+local url = require("socket.url")
 local crypto = require("crypto")
 local date = require("date")
 local urlhandler = require("lib.escher.urlhandler")
@@ -21,7 +22,6 @@ function Escher:new(o)
 end
 
 function Escher:authenticate(request, getApiSecret)
-
   local authHeader = self:getHeader(request.headers, self.authHeaderName)
   local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
   local hostHeader = self:getHeader(request.headers, "Host")
@@ -217,6 +217,59 @@ end
 
 function Escher.dropError(error)
   return false, error
+end
+
+function Escher:generateSignedUrl(urlToSign, client, expire)
+  local parsedUrl = url.parse(urlToSign)
+  local headers = {host = 'host'}
+  local headers_to_sign = 'host'
+  local body = 'UNSIGNED-PAYLOAD'
+  local path = parsedUrl.path
+  local fragment = parsedUrl.fragment
+
+  -- a queryParts változót még tovább kell bontani
+  local queryParts = ''
+
+  -- Ez a függvény generálja majd le a kulcsot
+  --local signature = generate_signature(client.apiSecret, body, headers, 'GET', headers_to_sign, path, queryParts)
+
+  return parsedUrl.scheme .. "://" .. parsedUrl.authority .. parsedUrl.path .. "?" ..  parsedUrl.query .. '&' ..
+  'X-EMS-Algorithm=' .. self.vendorKey .. '-HMAC-' .. self.hashAlgo .. '&' ..
+  'X-EMS-Credentials=' .. client.apiKeyId .. urlEncode("/" .. self:toShortDate() .. "/" .. self.credentialScope) .. '&' ..
+  'X-EMS-Date=' .. self:toLongDate() .. '&' ..
+  'X-EMS-Expires=' .. tostring(expire) .. "&" ..
+  'X-EMS-SignedHeaders=' .. headers_to_sign .. '&' ..
+  'X-EMS-Signature=fbc9dbb91670e84d04ad2ae7505f4f52ab3ff9e192b8233feeae57e9022c2b67'
+end
+
+function urlEncode(str)
+  if (str) then
+    str = string.gsub (str, "\n", "\r\n")
+    str = string.gsub (str, "([^%w %-%_%.%~])",
+      function (c) return string.format ("%%%02X", string.byte(c)) end)
+    str = string.gsub (str, " ", "+")
+  end
+  return str
+end
+
+function urlDecode(str)
+  str = string.gsub (str, "+", " ")
+  str = string.gsub (str, "%%(%x%x)",
+    function(h) return string.char(tonumber(h,16)) end)
+  str = string.gsub (str, "\r\n", "\n")
+  return str
+end
+
+function splitter(inputstr, sep)
+  if sep == nil then
+    sep = "%s"
+  end
+  local t={} ; i=1
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    t[i] = str
+    i = i + 1
+  end
+  return t
 end
 
 return Escher
