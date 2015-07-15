@@ -24,6 +24,7 @@ function Escher:authenticate(request, getApiSecret)
 
   local authHeader = self:getHeader(request.headers, self.authHeaderName)
   local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
+  local hostHeader = self:getHeader(request.headers, "Host")
 
   if authHeader == nil then
     return self.dropError("Missisng header: " .. self.authHeaderName)
@@ -33,16 +34,24 @@ function Escher:authenticate(request, getApiSecret)
     return self.dropError("Missisng header: " .. self.dateHeaderName)
   end
 
+  if hostHeader == nil then
+    return self.dropError("Missisng header: host")
+  end
+
   local requestDate = date(dateHeader)
   local authParts = self:parseAuthHeader(authHeader)
   local apiSecret = getApiSecret(authParts.accessKeyId)
+
+  if not string.match(authHeader, "(["..self.algoPrefix .."]+)%-HMAC%-") then
+    return self.dropError("Algorithm prefix is invalid")
+  end
 
   if apiSecret == nil then
     return self.dropError("Invalid API key")
   end
 
   if authParts.hashAlgo ~= self.hashAlgo then
-    return self.dropError("Only SHA256 hash algorithms are allowed")
+    return self.dropError("Only SHA256 and SHA512 hash algorithms are allowed")
   end
 
   if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then

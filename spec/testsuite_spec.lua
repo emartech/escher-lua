@@ -63,6 +63,7 @@ function runTestFiles(group, fn)
     validation = {
       'spec/emarsys_testsuite/valid-get-vanilla-empty-query.json',
       'spec/emarsys_testsuite/valid-authentication-datein-expiretime.json',
+      'spec/emarsys_testsuite/valid-authentication-notdependon-headersorder.json',
       'spec/emarsys_testsuite/invalid-authentication-requestdate-expired.json',
       'spec/emarsys_testsuite/invalid-authentication-requestdate-credentialdate-notequal.json',
       'spec/emarsys_testsuite/invalid-authentication-apisecret-nill.json',
@@ -70,7 +71,10 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/invalid-authentication-hostheader-notsigned.json',
       'spec/emarsys_testsuite/invalid-authentication-dateheader-notsigned.json',
       'spec/emarsys_testsuite/invalid-authentication-algorithm-wrong.json',
-      'spec/emarsys_testsuite/invalid-authentication-missingauthheader.json'
+      'spec/emarsys_testsuite/invalid-authentication-missingauthheader.json',
+      'spec/emarsys_testsuite/invalid-authentication-missingdateheader.json',
+      'spec/emarsys_testsuite/invalid-authentication-missinghostheader.json',
+      'spec/emarsys_testsuite/invalid-authentication-algorithmprefix-invalid.json'
     }
 
   }
@@ -132,7 +136,7 @@ describe("Escher TestSuite", function()
   describe('authenticateRequest', function()
 
     runTestFiles("validation", function(testFile)
-      it("should validate the request", function()
+      it("should validate the request or catch the error", function()
         local test = readTest(testFile)
         local escher = Escher:new(getConfigFromTestsuite(test.config))
         local getApiSecret = function(key)
