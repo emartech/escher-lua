@@ -45,7 +45,7 @@ function Escher:authenticate(request, getApiSecret)
   local authParts = self:parseAuthHeader(authHeader)
 
   if authParts.hashAlgo == nil then
-  return self.throwError("Could not parse auth header")
+    return self.throwError("Could not parse auth header")
   end
 
   if not string.match(authParts.signedHeaders, "host") then
