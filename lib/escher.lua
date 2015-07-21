@@ -3,7 +3,7 @@ local date = require("date")
 local urlhandler = require("lib.escher.urlhandler")
 local Escher = {
   algoPrefix      = 'ESR',
-  vendorKey       = 'Escher',
+  vendorKey       = 'ESCHER',
   hashAlgo        = 'SHA256',
   credentialScope = 'escher_request',
   authHeaderName  = 'X-Escher-Auth',
@@ -26,28 +26,45 @@ end
 
 function Escher:authenticate(request, getApiSecret)
 
-  local authHeader = self:getHeader(request.headers, self.authHeaderName)
   local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
-
-  if authHeader == nil then
-    return self.throwError("Missing header: " .. self.authHeaderName)
-  end
+  local authHeader = self:getHeader(request.headers, self.authHeaderName)
+  local hostHeader = self:getHeader(request.headers, 'host')
 
   if dateHeader == nil then
-    return self.throwError("Missing header: " .. self.dateHeaderName)
+    return self.throwError("The " .. self.dateHeaderName:lower() .. " header is missing")
   end
 
-  local requestDate = date(dateHeader)
-  local authParts = self:parseAuthHeader(authHeader)
-  local apiSecret = getApiSecret(authParts.accessKeyId)
+  if authHeader == nil then
+    return self.throwError("The " .. self.authHeaderName:lower() .. " header is missing")
+  end
 
-  if apiSecret == nil then
-    return self.throwError("Invalid API key")
+  if hostHeader == nil then
+    return self.throwError("The host header is missing")
+  end
+
+  local authParts = self:parseAuthHeader(authHeader)
+
+  if authParts.hashAlgo == nil then
+  return self.throwError("Could not parse auth header")
+  end
+
+  if not string.match(authParts.signedHeaders, "host") then
+    return self.throwError("The host header is not signed")
+  end
+
+  if not string.match(authParts.signedHeaders, "date") then
+    return self.throwError("The date header is not signed")
+  end
+
+  if authParts.credentialScope ~= self.credentialScope then
+    return self.throwError("The credential scope is invalid")
   end
 
   if authParts.hashAlgo ~= self.hashAlgo then
-    return self.throwError("Only SHA256 hash algorithms are allowed")
+    return self.throwError("Only SHA256 and SHA512 hash algorithms are allowed")
   end
+
+  local requestDate = date(dateHeader)
 
   if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then
     return self.throwError("The credential date does not match with the request date")
@@ -57,16 +74,10 @@ function Escher:authenticate(request, getApiSecret)
     return self.throwError("The request date is not within the accepted time range")
   end
 
-  if authParts.credentialScope ~= self.credentialScope then
-    return self.throwError("Invalid credentials")
-  end
+  local apiSecret = getApiSecret(authParts.accessKeyId)
 
-  if not string.match(authParts.signedHeaders, "host") then
-    return self.throwError("Host header is not signed")
-  end
-
-  if not string.match(authParts.signedHeaders, "date") then
-    return self.throwError("Date header is not signed")
+  if apiSecret == nil then
+    return self.throwError("Invalid API key")
   end
 
   self.apiSecret = apiSecret
@@ -203,10 +214,10 @@ end
 
 function Escher:parseAuthHeader(authHeader)
   local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature = string.match(authHeader,
-    "AWS4%-HMAC%-(%w+)%s+" ..
+    self.algoPrefix .. "%-HMAC%-(%w+)%s+" ..
     "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/]-),%s*" ..
-    "SignedHeaders=-([A-Za-z0-9\\;]+),%s+" ..
-    "Signature=-([a-f0-9]+)")
+    "SignedHeaders=([a-z0-9%-%_%;]+),%s*" ..
+    "Signature=([a-f0-9]+)")
 
   return {
     hashAlgo = hashAlgo,

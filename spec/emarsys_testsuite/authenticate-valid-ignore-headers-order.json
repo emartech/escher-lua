@@ -1,19 +1,18 @@
 {
-  "headersToSign": [
-    "date",
-    "host"
-  ],
+  "title": "should not depend on the order of headers",
+  "description": "Headers should be canonicalized, and sorted during canonicalization. The order of the headers should not matter.",
+  "headersToSign": [],
   "request": {
     "method": "GET",
     "url": "/",
     "headers": [
       [
-        "Date",
-        "Fri, 09 Oct 2011 23:36:00 GMT"
-      ],
-      [
         "Host",
         "host.foo.com"
+      ],
+      [
+        "Date",
+        "Fri, 09 Sep 2011 23:36:00 GMT"
       ],
       [
         "Authorization",
@@ -25,11 +24,10 @@
   "config": {
     "vendorKey": "AWS4",
     "algoPrefix": "AWS4",
-    "hashAlgo": "SHA256",
     "credentialScope": "us-east-1/host/aws4_request",
+    "date": "Fri, 09 Sep 2011 23:36:00 GMT",
     "authHeaderName": "Authorization",
-    "dateHeaderName": "Date",
-    "date": "2011-09-09T23:36:00.000Z"
+    "dateHeaderName": "Date"
   },
   "keyDb": [
     [
@@ -38,6 +36,6 @@
     ]
   ],
   "expected": {
-    "error": "The credential date does not match with the request date"
+    "apiKey": "AKIDEXAMPLE"
   }
 }
