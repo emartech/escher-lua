@@ -3,6 +3,8 @@ EscherLua - HTTP request signing lib [![Build Status](https://travis-ci.org/emar
 
 Lua implementation of the [AWS4](http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html) compatible [Escher](https://github.com/emartech/escher) HTTP request signing and authentication library. The library is compatible with the [Nginx's HttpLuaModule](http://wiki.nginx.org/HttpLuaModule) and [Openresty](http://openresty.org/).
 
+We are using it for our OpenResty based API gateway server for authenticating the requests, and route the request to our microservices with a different signature.
+
 Prerequisite
 ------------
 
