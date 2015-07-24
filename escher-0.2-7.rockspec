@@ -1,8 +1,8 @@
 package = "Escher"
-version = "0.2-6"
+version = "0.2-7"
 source = {
   url = "git://github.com/emartech/escher-lua",
-  tag = "0.2-6",
+  tag = "0.2-7",
   dir = "escher-lua"
 }
 description = {
@@ -19,7 +19,7 @@ dependencies = {
 build = {
     type = "builtin",
     modules = {
-        ["escher"] = "lib/escher.lua",
-        ["escher.urlhandler"] = "lib/escher/urlhandler.lua",
+        ["escher"] = "src/escher.lua",
+        ["escher.urlhandler"] = "src/escher/urlhandler.lua",
     }
 }

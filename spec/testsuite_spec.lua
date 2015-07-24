@@ -1,5 +1,5 @@
 local json = require("json")
-local Escher = require("lib.escher")
+local Escher = require("escher")
 
 function readTest(filename)
     local f = io.open(filename, "r")

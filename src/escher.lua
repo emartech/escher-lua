@@ -1,6 +1,6 @@
 local crypto = require("crypto")
 local date = require("date")
-local urlhandler = require("lib.escher.urlhandler")
+local urlhandler = require("escher.urlhandler")
 local Escher = {
   algoPrefix      = 'ESR',
   vendorKey       = 'ESCHER',
