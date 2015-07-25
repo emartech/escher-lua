@@ -16,7 +16,7 @@ local Escher = {
 
 function Escher:new(o)
   o = o or {}
-  o.date = date(o.date)
+  o.date = date(o.date or os.date("!%c"))
   setmetatable(o, self)
   self.__index = self
   return o
@@ -112,7 +112,7 @@ function Escher:canonicalizeRequest(request)
     self:canonicalizeHeaders(headers),
     "",
     self:canonicalizeSignedHeaders(headers),
-    crypto.digest(self.hashAlgo, request.body)
+    crypto.digest(self.hashAlgo, request.body or '')
   }, "\n")
 end
 

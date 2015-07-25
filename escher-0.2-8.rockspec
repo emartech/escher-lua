@@ -1,8 +1,8 @@
 package = "Escher"
-version = "0.2-7"
+version = "0.2-8"
 source = {
   url = "git://github.com/emartech/escher-lua",
-  tag = "0.2-7",
+  tag = "0.2-8",
   dir = "escher-lua"
 }
 description = {
