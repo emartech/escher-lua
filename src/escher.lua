@@ -24,7 +24,7 @@ end
 
 
 
-function Escher:authenticate(request, getApiSecret)
+function Escher:authenticate(request, getApiSecret, headersToSign)
 
   local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
   local authHeader = self:getHeader(request.headers, self.authHeaderName)
@@ -82,7 +82,7 @@ function Escher:authenticate(request, getApiSecret)
 
   self.apiSecret = apiSecret
   self.date = date(requestDate)
-  if authParts.signature ~= self:calculateSignature(request) then
+  if authParts.signature ~= self:calculateSignature(request, headersToSign) then
     return self.throwError("The signatures do not match")
   end
 
@@ -102,9 +102,10 @@ end
 
 
 
-function Escher:canonicalizeRequest(request)
+function Escher:canonicalizeRequest(request, headersToSign)
   local url = urlhandler.parse(request.url):normalize()
-  local headers = request.headers
+  local headers = self:filterHeaders(request.headers, headersToSign)
+
   return table.concat({
     request.method,
     url.path,
@@ -165,12 +166,12 @@ end
 
 
 
-function Escher:getStringToSign(request)
+function Escher:getStringToSign(request, headersToSign)
   return table.concat({
     string.format('%s-HMAC-%s', self.algoPrefix, self.hashAlgo),
     self:toLongDate(),
     string.format('%s/%s', self:toShortDate(), self.credentialScope),
-    crypto.digest(self.hashAlgo, self:canonicalizeRequest(request))
+    crypto.digest(self.hashAlgo, self:canonicalizeRequest(request, headersToSign))
   }, "\n")
 end
 
@@ -192,15 +193,15 @@ end
 
 function Escher:generateHeader(request)
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
-         " Credential=" .. self:generateFullCredentials() ..
-         ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
-         ", Signature=" .. self:calculateSignature(request)
+          " Credential=" .. self:generateFullCredentials() ..
+          ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
+          ", Signature=" .. self:calculateSignature(request)
 end
 
 
 
-function Escher:calculateSignature(request)
-  local stringToSign = self:getStringToSign(request)
+function Escher:calculateSignature(request, headersToSign)
+  local stringToSign = self:getStringToSign(request, headersToSign)
   local signingKey = crypto.hmac.digest(self.hashAlgo, self:toShortDate(), self.algoPrefix .. self.apiSecret, true)
 
   for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
@@ -215,9 +216,9 @@ end
 function Escher:parseAuthHeader(authHeader)
   local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature = string.match(authHeader,
     self.algoPrefix .. "%-HMAC%-(%w+)%s+" ..
-    "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/]-),%s*" ..
-    "SignedHeaders=([a-z0-9%-%_%;]+),%s*" ..
-    "Signature=([a-f0-9]+)")
+            "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/]-),%s*" ..
+            "SignedHeaders=([a-z0-9%-%_%;]+),%s*" ..
+            "Signature=([a-f0-9]+)")
 
   return {
     hashAlgo = hashAlgo,
@@ -260,6 +261,26 @@ function Escher.throwError(error)
   return false, error
 end
 
+function Escher:filterHeaders(headers, headersToSign)
+  local filteredHeaders = {}
+  for _, header in pairs(headers) do
+    if self.headerNeedToSign(header[1], headersToSign) then
+      table.insert(filteredHeaders, header)
+    end
+  end
 
+  return filteredHeaders
+end
+
+function Escher.headerNeedToSign(headerName, headersToSign)
+  local enable = false
+  for _, header in pairs(headersToSign) do
+    if headerName:lower() == header:lower() then
+      enable = true
+    end
+  end
+
+  return enable
+end
 
 return Escher

@@ -1,7 +1,10 @@
 {
   "title": "should not depend on the order of headers",
   "description": "Headers should be canonicalized, and sorted during canonicalization. The order of the headers should not matter.",
-  "headersToSign": [],
+  "headersToSign": [
+    "host",
+    "date"
+  ],
   "request": {
     "method": "GET",
     "url": "/",

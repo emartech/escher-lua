@@ -2,10 +2,10 @@ local json = require("json")
 local Escher = require("escher")
 
 function readTest(filename)
-    local f = io.open(filename, "r")
-    local content = f:read("*all")
-    f:close()
-    return json.decode(content)
+  local f = io.open(filename, "r")
+  local content = f:read("*all")
+  f:close()
+  return json.decode(content)
 end
 
 function getConfigFromTestsuite(config)
@@ -60,7 +60,7 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/signrequest-post-header-value-spaces-within-quotes.json',
       'spec/emarsys_testsuite/signrequest-post-payload-utf8.json',
       'spec/emarsys_testsuite/signrequest-date-header-should-be-signed-headers.json',
-      -- 'spec/emarsys_testsuite/signrequest-only-sign-specified-headers.json',
+      'spec/emarsys_testsuite/signrequest-only-sign-specified-headers.json',
       -- 'spec/emarsys_testsuite/signrequest-support-custom-config.json',
     },
     validation = {
@@ -105,7 +105,8 @@ describe("Escher TestSuite", function()
     runTestFiles("signing", function(testFile, test)
       it("should canonicalize the request " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local canonicalizedRequest = escher:canonicalizeRequest(test.request)
+        local canonicalizedRequest = escher:canonicalizeRequest(test.request, test.headersToSign)
+
         if test.expected.canonicalizedRequest then
           assert.are.equals(test.expected.canonicalizedRequest, canonicalizedRequest)
         end
@@ -119,7 +120,7 @@ describe("Escher TestSuite", function()
     runTestFiles("signing", function(testFile, test)
       it("should return the proper string to sign " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local stringToSign = escher:getStringToSign(test.request)
+        local stringToSign = escher:getStringToSign(test.request, test.headersToSign)
         if test.expected.stringToSign then
           assert.are.equals(test.expected.stringToSign, stringToSign)
         end
@@ -140,7 +141,7 @@ describe("Escher TestSuite", function()
             end
           end
         end
-        local apiKey, err = escher:authenticate(test.request, getApiSecret)
+        local apiKey, err = escher:authenticate(test.request, getApiSecret, test.headersToSign)
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)
