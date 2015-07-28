@@ -24,7 +24,7 @@ end
 
 
 
-function Escher:authenticate(request, getApiSecret, headersToSign)
+function Escher:authenticate(request, getApiSecret)
 
   local dateHeader = self:getHeader(request.headers, self.dateHeaderName)
   local authHeader = self:getHeader(request.headers, self.authHeaderName)
@@ -82,7 +82,9 @@ function Escher:authenticate(request, getApiSecret, headersToSign)
 
   self.apiSecret = apiSecret
   self.date = date(requestDate)
-  if authParts.signature ~= self:calculateSignature(request, headersToSign) then
+  local headersToSignTest = splitter(authParts.signedHeaders, ';')
+
+  if authParts.signature ~= self:calculateSignature(request, headersToSignTest) then
     return self.throwError("The signatures do not match")
   end
 
@@ -263,8 +265,10 @@ end
 
 function Escher:filterHeaders(headers, headersToSign)
   local filteredHeaders = {}
+  local fullHeadersToSign = headersToSign
+
   for _, header in pairs(headers) do
-    if self.headerNeedToSign(header[1], headersToSign) then
+    if self.headerNeedToSign(header[1], fullHeadersToSign) then
       table.insert(filteredHeaders, header)
     end
   end
@@ -281,6 +285,27 @@ function Escher.headerNeedToSign(headerName, headersToSign)
   end
 
   return enable
+end
+
+function table.contains(table, element)
+  for _, value in pairs(table) do
+    if value:lower() == element then
+      return true
+    end
+  end
+  return false
+end
+
+function splitter(inputstr, sep)
+  if sep == nil then
+    sep = "%s"
+  end
+  local t={} ; i=1
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    t[i] = str
+    i = i + 1
+  end
+  return t
 end
 
 return Escher

@@ -61,7 +61,7 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/signrequest-post-payload-utf8.json',
       'spec/emarsys_testsuite/signrequest-date-header-should-be-signed-headers.json',
       'spec/emarsys_testsuite/signrequest-only-sign-specified-headers.json',
-      -- 'spec/emarsys_testsuite/signrequest-support-custom-config.json',
+      'spec/emarsys_testsuite/signrequest-support-custom-config.json',
     },
     validation = {
       'spec/emarsys_testsuite/authenticate-error-date-header-auth-header-date-not-equal.json',
@@ -74,14 +74,14 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-error-missing-auth-header.json',
       'spec/emarsys_testsuite/authenticate-error-missing-date-header.json',
       'spec/emarsys_testsuite/authenticate-error-missing-host-header.json',
-      -- 'spec/emarsys_testsuite/authenticate-error-presigned-url-expired.json',
+     --  'spec/emarsys_testsuite/authenticate-error-presigned-url-expired.json',
       'spec/emarsys_testsuite/authenticate-error-request-date-invalid.json',
       'spec/emarsys_testsuite/authenticate-error-wrong-signature.json',
       'spec/emarsys_testsuite/authenticate-valid-authentication-datein-expiretime.json',
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query-with-custom-headernames.json',
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query.json',
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
-      -- 'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
+     --  'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
     }
   }
   for _, testFile in pairs(testFiles[group]) do
@@ -141,7 +141,7 @@ describe("Escher TestSuite", function()
             end
           end
         end
-        local apiKey, err = escher:authenticate(test.request, getApiSecret, test.headersToSign)
+        local apiKey, err = escher:authenticate(test.request, getApiSecret)
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)
