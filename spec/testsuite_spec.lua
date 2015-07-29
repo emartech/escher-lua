@@ -74,14 +74,17 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-error-missing-auth-header.json',
       'spec/emarsys_testsuite/authenticate-error-missing-date-header.json',
       'spec/emarsys_testsuite/authenticate-error-missing-host-header.json',
-     --  'spec/emarsys_testsuite/authenticate-error-presigned-url-expired.json',
+      'spec/emarsys_testsuite/authenticate-error-presigned-url-expired.json',
       'spec/emarsys_testsuite/authenticate-error-request-date-invalid.json',
       'spec/emarsys_testsuite/authenticate-error-wrong-signature.json',
       'spec/emarsys_testsuite/authenticate-valid-authentication-datein-expiretime.json',
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query-with-custom-headernames.json',
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query.json',
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
-     --  'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
+      'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
+    },
+    generateSignedUrl = {
+      'spec/emarsys_testsuite/presignurl-valid-with-path-query.json'
     }
   }
   for _, testFile in pairs(testFiles[group]) do
@@ -123,6 +126,22 @@ describe("Escher TestSuite", function()
         local stringToSign = escher:getStringToSign(test.request, test.headersToSign)
         if test.expected.stringToSign then
           assert.are.equals(test.expected.stringToSign, stringToSign)
+        end
+      end)
+    end)
+
+  end)
+
+  describe('generateSignedUrl', function()
+
+    runTestFiles("generateSignedUrl", function(testFile, test)
+      it("should return the proper url string" .. testFile, function()
+        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local client = {test.config.accessKeyId, test.config.apiSecret}
+        local signedUrl = escher:generateSignedUrl(test.request.url, client, test.request.expires)
+
+        if test.expected.url then
+          assert.are.equals(test.expected.url, signedUrl)
         end
       end)
     end)
