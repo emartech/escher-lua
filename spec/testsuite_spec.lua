@@ -81,13 +81,15 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query-with-custom-headernames.json',
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query.json',
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
-      'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
+      'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json',
+      'spec/emarsys_testsuite/authenticate-valid-presigned-double-url-encoded.json'
     },
     generateSignedUrl = {
       'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',
       'spec/emarsys_testsuite/presignurl-valid-with-port.json',
       'spec/emarsys_testsuite/presignurl-valid-with-hash.json',
       'spec/emarsys_testsuite/presignurl-valid-with-URL-encoded-array-parameters.json',
+      'spec/emarsys_testsuite/presignurl-valid-with-double-url-encoded.json'
     }
   }
   for _, testFile in pairs(testFiles[group]) do
