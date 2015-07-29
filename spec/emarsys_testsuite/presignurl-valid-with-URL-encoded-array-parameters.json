@@ -1,0 +1,19 @@
+{
+  "request": {
+    "url": "http://example.com/something?arr%5B%5C=apple&arr%5B%5C=pear",
+    "expires": "123456"
+  },
+  "expected": {
+    "url": "http://example.com/something?arr%5B%5C=apple&arr%5B%5C=pear&X-EMS-Algorithm=EMS-HMAC-SHA256&X-EMS-Credentials=th3K3y%2F20110511%2Fus-east-1%2Fhost%2Faws4_request&X-EMS-Date=20110511T120000Z&X-EMS-Expires=123456&X-EMS-SignedHeaders=host&X-EMS-Signature=4d874d872a1df27f05d810592f98a3020ddfb92627043ebf255c86058fa1b93a"
+  },
+  "config": {
+    "vendorKey": "EMS",
+    "algoPrefix": "EMS",
+    "hashAlgo": "SHA256",
+    "clockSkew": 10,
+    "credentialScope": "us-east-1/host/aws4_request",
+    "date": "2011-05-11T12:00:00Z",
+    "accessKeyId": "th3K3y",
+    "apiSecret": "very_secure"
+  }
+}

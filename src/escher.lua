@@ -328,7 +328,7 @@ function Escher:generateSignedUrl(url, client, expires)
     expires = 86400
   end
 
-  local parsedUrl = socketurl.parse(url)
+  local parsedUrl = socketurl.parse(urlDecode(url))
   local host = parsedUrl.host
   local headers = {{'host', parsedUrl.host}}
   local headersToSign = {'host'}
@@ -340,6 +340,15 @@ function Escher:generateSignedUrl(url, client, expires)
     Expires = expires,
     SignedHeaders = headersToSign[1],
   }
+
+  local hash = ''
+
+  if parsedUrl.fragment ~= nil then
+    hash = '#' .. parsedUrl.fragment
+    parsedUrl.fragment = ''
+    url = string.gsub(socketurl.build(parsedUrl), "#", '')
+  end
+
   local signedUrl = url .. "&" ..
           "X-EMS-Algorithm=" .. params.Algorithm .. '&' ..
           "X-EMS-Credentials=" .. params.Credentials .. '&' ..
@@ -348,7 +357,6 @@ function Escher:generateSignedUrl(url, client, expires)
           "X-EMS-SignedHeaders=" .. params.SignedHeaders .. '&'
 
   local parsedSignedUrl = socketurl.parse(signedUrl)
-
   local request = {
     host = host,
     method = 'GET',
@@ -358,7 +366,7 @@ function Escher:generateSignedUrl(url, client, expires)
   }
 
   local signature = self:calculateSignature(request, headersToSign)
-  signedUrl = signedUrl .. "X-EMS-Signature=" .. signature
+  signedUrl = signedUrl .. "X-EMS-Signature=" .. signature  .. hash
   return signedUrl
 end
 

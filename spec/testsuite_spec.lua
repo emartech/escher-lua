@@ -84,7 +84,10 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json'
     },
     generateSignedUrl = {
-      'spec/emarsys_testsuite/presignurl-valid-with-path-query.json'
+      'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',
+      'spec/emarsys_testsuite/presignurl-valid-with-port.json',
+      'spec/emarsys_testsuite/presignurl-valid-with-hash.json',
+      'spec/emarsys_testsuite/presignurl-valid-with-URL-encoded-array-parameters.json',
     }
   }
   for _, testFile in pairs(testFiles[group]) do
