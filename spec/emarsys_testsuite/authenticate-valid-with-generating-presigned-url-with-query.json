@@ -1,0 +1,25 @@
+{
+  "title": "should generate the presignedUrl and generate other parts of the request for the authenticate process",
+  "request": {
+    "url": "https://example.com/something?foo=bar&baz=barbaz",
+    "expires": "1234566"
+  },
+  "config": {
+    "vendorKey": "EMS",
+    "algoPrefix": "EMS",
+    "hashAlgo": "SHA256",
+    "credentialScope": "us-east-1/host/aws4_request",
+    "date": "2011-05-11T12:00:00.000Z",
+    "accessKeyId": "th3K3y",
+    "apiSecret": "very_secure"
+  },
+  "keyDb": [
+    [
+      "th3K3y",
+      "very_secure"
+    ]
+  ],
+  "expected": {
+    "apiKey": "th3K3y"
+  }
+}

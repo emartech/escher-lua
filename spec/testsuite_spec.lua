@@ -1,5 +1,6 @@
 local json = require("json")
 local Escher = require("escher")
+local socketUrl = require("socket.url")
 
 function readTest(filename)
   local f = io.open(filename, "r")
@@ -90,6 +91,9 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/presignurl-valid-with-hash.json',
       'spec/emarsys_testsuite/presignurl-valid-with-URL-encoded-array-parameters.json',
       'spec/emarsys_testsuite/presignurl-valid-with-double-url-encoded.json'
+    },
+    generateAndAuthenticate = {
+      'spec/emarsys_testsuite/authenticate-valid-with-generating-presigned-url-with-query.json',
     }
   }
   for _, testFile in pairs(testFiles[group]) do
@@ -137,13 +141,13 @@ describe("Escher TestSuite", function()
 
   end)
 
-  describe('generateSignedUrl', function()
+  describe('generatePreSignedUrl', function()
 
     runTestFiles("generateSignedUrl", function(testFile, test)
       it("should return the proper url string" .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
         local client = {test.config.accessKeyId, test.config.apiSecret}
-        local signedUrl = escher:generateSignedUrl(test.request.url, client, test.request.expires)
+        local signedUrl = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
 
         if test.expected.url then
           assert.are.equals(test.expected.url, signedUrl)
@@ -180,4 +184,46 @@ describe("Escher TestSuite", function()
 
   end)
 
+  describe('generateAndAuthenticatePreSignedUrl', function()
+
+    runTestFiles("generateAndAuthenticate", function(testFile, test)
+      it("should validate the request " .. testFile, function()
+        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local client = {test.config.accessKeyId, test.config.apiSecret}
+
+        local getApiSecret = function(key)
+          for _, element in pairs(test.keyDb) do
+            if element[1] == key then
+              return element[2]
+            end
+          end
+        end
+
+        test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
+        local request = createRequest(test.request)
+        local apiKey, err = escher:authenticate(request, getApiSecret)
+        if test.expected.apiKey then
+          assert.are.equals(nil, err)
+          assert.are.equals(test.expected.apiKey, apiKey)
+        end
+        if test.expected.error then
+          assert.are.equals(test.expected.error, err)
+          assert.are.equals(false, apiKey)
+        end
+      end)
+
+    end)
+
+  end)
+
 end)
+
+function createRequest(request, config)
+  request.method = "GET"
+  request.body = ""
+  request.headers = {}
+  local parsedUrl = socketUrl.parse(request.url)
+  request.url = string.sub(request.url, string.find(request.url, parsedUrl.authority) + string.len(parsedUrl.authority))
+  table.insert(request.headers, {'Host', parsedUrl.authority})
+  return request
+end

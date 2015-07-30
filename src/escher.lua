@@ -33,19 +33,6 @@ function Escher:authenticate(request, getApiSecret)
   local authHeader = self:getHeader(request.headers, self.authHeaderName)
   local hostHeader = self:getHeader(request.headers, 'host')
 
-  local authParts
-  local expires
-
-  if isPresignedUrl then
-    expires = tonumber(string.match(uri.query, 'Expires=([0-9]+)&'))
-    authParts = self:parseQuery(urlDecode(uri.query))
-    request.body = 'UNSIGNED-PAYLOAD';
-    request.url = self:canonicalizeUrl(request.url)
-  else
-    expires = self.clockSkew
-    authParts = self:parseAuthHeader(authHeader or '')
-  end
-
   if dateHeader == nil and not isPresignedUrl then
     return self.throwError("The " .. self.dateHeaderName:lower() .. " header is missing")
   end
@@ -56,6 +43,22 @@ function Escher:authenticate(request, getApiSecret)
 
   if hostHeader == nil then
     return self.throwError("The host header is missing")
+  end
+
+  local authParts
+  local expires
+  local requestDate
+
+  if isPresignedUrl then
+    requestDate = date(string.match(uri.query, 'Date=([A-Za-z0-9]+)&'))
+    authParts = self:parseQuery(urlDecode(uri.query))
+    request.body = 'UNSIGNED-PAYLOAD';
+    expires = tonumber(string.match(uri.query, 'Expires=([0-9]+)&'))
+    request.url = self:canonicalizeUrl(request.url)
+  else
+    requestDate = date(dateHeader)
+    authParts = self:parseAuthHeader(authHeader or '')
+    expires = 0
   end
 
   if authParts.hashAlgo == nil then
@@ -78,13 +81,6 @@ function Escher:authenticate(request, getApiSecret)
     return self.throwError("Only SHA256 and SHA512 hash algorithms are allowed")
   end
 
-  local requestDate
-  if isPresignedUrl then
-    requestDate = date(string.match(uri.query, 'Date=([A-Za-z0-9]+)&'))
-  else
-    requestDate = date(dateHeader)
-  end
-
   if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then
     return self.throwError("The credential date does not match with the request date")
   end
@@ -96,7 +92,7 @@ function Escher:authenticate(request, getApiSecret)
   local apiSecret = getApiSecret(authParts.accessKeyId)
 
   if apiSecret == nil then
-    return self.throwError("Invalid API key")
+    return self.throwError("Invalid Escher key")
   end
 
   self.apiSecret = apiSecret
@@ -126,7 +122,6 @@ end
 function Escher:canonicalizeRequest(request, headersToSign)
   local url = urlhandler.parse(request.url):normalize()
   local headers = self:filterHeaders(request.headers, headersToSign)
-
   return table.concat({
     request.method,
     url.path,
@@ -288,9 +283,9 @@ end
 
 
 
-function Escher:isDateWithinRange(request_date, skew)
+function Escher:isDateWithinRange(request_date, expires)
   local diff = math.abs(date.diff(self.date, request_date):spanseconds())
-  return diff <= skew
+  return diff <= self.clockSkew + expires
 end
 
 
@@ -323,7 +318,7 @@ function Escher.headerNeedToSign(headerName, headersToSign)
   return enable
 end
 
-function Escher:generateSignedUrl(url, client, expires)
+function Escher:generatePreSignedUrl(url, client, expires)
   if expires == nil then
     expires = 86400
   end
