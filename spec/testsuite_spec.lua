@@ -199,8 +199,10 @@ describe("Escher TestSuite", function()
           end
         end
 
+--      print('\n\nFull url before presign process:\n\n' .. test.request.url)
+
         test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
-        local request = createRequest(test.request)
+        local request = createRequestFromUrl(test.request.url)
         local apiKey, err = escher:authenticate(request, getApiSecret)
         if test.expected.apiKey then
           assert.are.equals(nil, err)
@@ -218,12 +220,31 @@ describe("Escher TestSuite", function()
 
 end)
 
-function createRequest(request, config)
-  request.method = "GET"
-  request.body = ""
-  request.headers = {}
-  local parsedUrl = socketUrl.parse(request.url)
-  request.url = string.sub(request.url, string.find(request.url, parsedUrl.authority) + string.len(parsedUrl.authority))
-  table.insert(request.headers, {'Host', parsedUrl.authority})
-  return request
+function createRequestFromUrl(url)
+  local parsedUrl = socketUrl.parse(url)
+  local buildedUrl = ''
+  local enableBuild = false
+
+  for _,v in ipairs(socketUrl.parse_path(url)) do
+    if enableBuild then
+      buildedUrl = buildedUrl .. '/' .. v
+    elseif string.find(v, parsedUrl.host) ~= nil then
+      enableBuild = true
+    end
+  end
+
+--  --TEST-START
+--  print("\n\nFull url after presign process:\n\n" .. url .. "\n\nUrl segments:\n")
+--  for k,v in ipairs(socketUrl.parse_path(url)) do
+--    print(k .. ' : ' .. v)
+--  end
+--  print('\nBuilded url:\n\n' .. buildedUrl .. '\n')
+--  --TEST-END
+
+  return {
+    method = 'GET',
+    url = buildedUrl,
+    body = "",
+    headers = {{'Host', parsedUrl.host}}
+  }
 end

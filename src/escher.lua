@@ -51,7 +51,7 @@ function Escher:authenticate(request, getApiSecret)
 
   if isPresignedUrl then
     requestDate = date(string.match(uri.query, 'Date=([A-Za-z0-9]+)&'))
-    authParts = self:parseQuery(urlDecode(uri.query))
+    authParts = self:parseQuery(socketurl.unescape(uri.query))
     request.body = 'UNSIGNED-PAYLOAD';
     expires = tonumber(string.match(uri.query, 'Expires=([0-9]+)&'))
     request.url = self:canonicalizeUrl(request.url)
@@ -323,9 +323,9 @@ function Escher:generatePreSignedUrl(url, client, expires)
     expires = 86400
   end
 
-  local parsedUrl = socketurl.parse(urlDecode(url))
+  local parsedUrl = socketurl.parse(socketurl.unescape(url))
   local host = parsedUrl.host
-  local headers = {{'host', parsedUrl.host}}
+  local headers = {{'host', host}}
   local headersToSign = {'host'}
   local body = 'UNSIGNED-PAYLOAD'
   local params = {
@@ -337,7 +337,6 @@ function Escher:generatePreSignedUrl(url, client, expires)
   }
 
   local hash = ''
-
   if parsedUrl.fragment ~= nil then
     hash = '#' .. parsedUrl.fragment
     parsedUrl.fragment = ''
@@ -355,53 +354,13 @@ function Escher:generatePreSignedUrl(url, client, expires)
   local request = {
     host = host,
     method = 'GET',
-    url = parsedSignedUrl.path .. '?' .. parsedSignedUrl.query,
+    url = parsedSignedUrl.path .. '?' .. (parsedSignedUrl.query),
     headers = headers,
     body = body,
   }
-
   local signature = self:calculateSignature(request, headersToSign)
   signedUrl = signedUrl .. "X-EMS-Signature=" .. signature  .. hash
   return signedUrl
-end
-
-function table.contains(table, element)
-  for _, value in pairs(table) do
-    if value:lower() == element then
-      return true
-    end
-  end
-  return false
-end
-
-function splitter(inputstr, sep)
-  if sep == nil then
-    sep = "%s"
-  end
-  local t={} ; i=1
-  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-    t[i] = str
-    i = i + 1
-  end
-  return t
-end
-
-function urlEncode(str)
-  if (str) then
-    str = string.gsub (str, "\n", "\r\n")
-    str = string.gsub (str, "([^%w ])",
-      function (c) return string.format ("%%%02X", string.byte(c)) end)
-    str = string.gsub (str, " ", "+")
-  end
-  return str
-end
-
-function urlDecode(str)
-  str = string.gsub (str, "+", " ")
-  str = string.gsub (str, "%%(%x%x)",
-    function(h) return string.char(tonumber(h,16)) end)
-  str = string.gsub (str, "\r\n", "\n")
-  return str
 end
 
 function Escher:canonicalizeUrl(url)
@@ -415,6 +374,18 @@ function Escher:canonicalizeUrl(url)
   end
 
   return string.sub(canonicalizedUrl, 1, -2)
+end
+
+function splitter(inputstr, sep)
+  if sep == nil then
+    sep = "%s"
+  end
+  local t={} ; i=1
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    t[i] = str
+    i = i + 1
+  end
+  return t
 end
 
 return Escher
