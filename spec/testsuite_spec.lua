@@ -199,8 +199,6 @@ describe("Escher TestSuite", function()
           end
         end
 
---      print('\n\nFull url before presign process:\n\n' .. test.request.url)
-
         test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
         local request = createRequestFromUrl(test.request.url)
         local apiKey, err = escher:authenticate(request, getApiSecret)
@@ -232,14 +230,6 @@ function createRequestFromUrl(url)
       enableBuild = true
     end
   end
-
---  --TEST-START
---  print("\n\nFull url after presign process:\n\n" .. url .. "\n\nUrl segments:\n")
---  for k,v in ipairs(socketUrl.parse_path(url)) do
---    print(k .. ' : ' .. v)
---  end
---  print('\nBuilded url:\n\n' .. buildedUrl .. '\n')
---  --TEST-END
 
   return {
     method = 'GET',

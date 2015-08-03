@@ -74,6 +74,7 @@ function Escher:authenticate(request, getApiSecret)
   end
 
   if authParts.credentialScope ~= self.credentialScope then
+    print(self.credentialScope)
     return self.throwError("The credential scope is invalid")
   end
 
