@@ -74,7 +74,6 @@ function Escher:authenticate(request, getApiSecret)
   end
 
   if authParts.credentialScope ~= self.credentialScope then
-    print(self.credentialScope)
     return self.throwError("The credential scope is invalid")
   end
 
@@ -209,11 +208,12 @@ end
 
 
 
-function Escher:generateHeader(request)
+function Escher:generateHeader(request, headersToSign)
+  headersToSign = headersToSign or {"host", self.dateHeaderName}
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
           " Credential=" .. self:generateFullCredentials() ..
           ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
-          ", Signature=" .. self:calculateSignature(request)
+          ", Signature=" .. self:calculateSignature(request, headersToSign)
 end
 
 
