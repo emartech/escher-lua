@@ -1,4 +1,4 @@
-EscherLua - HTTP request signing lib [![Build Status](https://travis-ci.org/emartech/escher-java.svg?branch=master)](https://travis-ci.org/emartech/escher-lua)
+EscherLua - HTTP request signing lib [![Build Status](https://travis-ci.org/emartech/escher-lua.svg?branch=master)](https://travis-ci.org/emartech/escher-lua)
 ====================================
 
 Lua implementation of the [AWS4](http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html) compatible [Escher](https://github.com/emartech/escher) HTTP request signing and authentication library. The library is compatible with the [Nginx's HttpLuaModule](http://wiki.nginx.org/HttpLuaModule) and [Openresty](http://openresty.org/).
