@@ -21,7 +21,7 @@ brew install cmake
 brew install openssl
 luarocks-5.2 install luafilesystem
 luarocks-5.2 install busted
-luarocks-5.2 install json
+luarocks-5.2 install rapidjson
 luarocks-5.2 install date
 luarocks-5.2 install luacrypto OPENSSL_INCDIR=/usr/local/Cellar/openssl/1.0.2c/include
 ```

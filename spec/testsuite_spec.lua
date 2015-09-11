@@ -1,4 +1,4 @@
-local json = require("json")
+local json = require("rapidjson")
 local Escher = require("escher")
 local socketUrl = require("socket.url")
 
