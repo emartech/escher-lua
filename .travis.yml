@@ -12,7 +12,7 @@ install:
   - sudo apt-get install luarocks
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
-  - sudo luarocks install json
+  - sudo luarocks install rapidjson
   - sudo luarocks install luacrypto
   - sudo luarocks install date
 
