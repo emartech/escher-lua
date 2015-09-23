@@ -82,7 +82,7 @@ function Escher:authenticate(request, getApiSecret)
   end
 
   if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then
-    return self.throwError("The credential date does not match with the request date")
+    return self.throwError("The " .. self.authHeaderName .. "'s date does not match with the request date")
   end
 
   if not self:isDateWithinRange(requestDate, expires) then
