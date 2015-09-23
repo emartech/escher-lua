@@ -234,7 +234,7 @@ end
 function Escher:parseAuthHeader(authHeader)
   local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature = string.match(authHeader,
     self.algoPrefix .. "%-HMAC%-(%w+)%s+" ..
-            "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/]-),%s*" ..
+            "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/% ]-),%s*" ..
             "SignedHeaders=([a-z0-9%-%_%;]+),%s*" ..
             "Signature=([a-f0-9]+)")
   return {

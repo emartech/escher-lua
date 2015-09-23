@@ -83,7 +83,8 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-get-vanilla-empty-query.json',
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
       'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json',
-      'spec/emarsys_testsuite/authenticate-valid-presigned-double-url-encoded.json'
+      'spec/emarsys_testsuite/authenticate-valid-presigned-double-url-encoded.json',
+        'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json'
     },
     generateSignedUrl = {
       'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',
