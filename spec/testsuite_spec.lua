@@ -63,6 +63,7 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/signrequest-date-header-should-be-signed-headers.json',
       'spec/emarsys_testsuite/signrequest-only-sign-specified-headers.json',
       'spec/emarsys_testsuite/signrequest-support-custom-config.json',
+      'spec/emarsys_testsuite/signrequest-support-custom-config-with-customer-id.json'
     },
     validation = {
       'spec/emarsys_testsuite/authenticate-error-date-header-auth-header-date-not-equal.json',
@@ -84,7 +85,7 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
       'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json',
       'spec/emarsys_testsuite/authenticate-valid-presigned-double-url-encoded.json',
-        'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json'
+      'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json'
     },
     generateSignedUrl = {
       'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',
@@ -134,6 +135,7 @@ describe("Escher TestSuite", function()
       it("should return the proper string to sign " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
         local stringToSign = escher:getStringToSign(test.request, test.headersToSign)
+
         if test.expected.stringToSign then
           assert.are.equals(test.expected.stringToSign, stringToSign)
         end
@@ -141,6 +143,22 @@ describe("Escher TestSuite", function()
     end)
 
   end)
+
+  describe('generateAuthHeader', function()
+
+    runTestFiles("signing", function(testFile, test)
+      it("should generate full authorization header " .. testFile, function()
+        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local authHeader = escher:generateHeader(test.request, test.headersToSign)
+
+        if test.expected.authHeader then
+          assert.are.equals(test.expected.authHeader, authHeader)
+        end
+     end)
+   end)
+
+  end)
+
 
   describe('generatePreSignedUrl', function()
 

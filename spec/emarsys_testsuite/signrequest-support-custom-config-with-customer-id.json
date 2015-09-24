@@ -2,7 +2,8 @@
   "title": "should use the custom configuration values to sign the request",
   "description": "VendorKey, algoPrefix values, Authorization and Date header names are customizable. Host and date headers will be added to signedheaders, but as this happens before canonicalization, canonicalizedRequest and stringToSign won't see them in these test.",
   "headersToSign": [
-    "content-type"
+    "customerId",
+    "Korte"
   ],
   "request": {
     "method": "POST",
@@ -17,8 +18,12 @@
         "iam.amazonaws.com"
       ],
       [
-        "Content-Type",
-        "application/x-www-form-urlencoded; charset=utf-8"
+        "customerId",
+        "1234567"
+      ],
+      [
+        "Korte",
+        "almafa"
       ]
     ],
     "body": "Action=ListUsers&Version=2010-05-08"
@@ -48,18 +53,22 @@
           "iam.amazonaws.com"
         ],
         [
-          "Content-Type",
-          "application/x-www-form-urlencoded; charset=utf-8"
+          "customerId",
+          "1234567"
+        ],
+        [
+          "Korte",
+          "almafa"
         ],
         [
           "X-Ems-Auth",
-          "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=content-type;host;x-ems-date, Signature=f36c21c6e16a71a6e8dc56673ad6354aeef49c577a22fd58a190b5fcf8891dbd"
+          "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=eca1ccb77cbf6959dc760bd79debccaf24bd6436208d474a8569ccab12e1645d"
         ]
       ],
       "body": "Action=ListUsers&Version=2010-05-08"
     },
-    "canonicalizedRequest": "POST\n/\n\ncontent-type:application/x-www-form-urlencoded; charset=utf-8\n\ncontent-type\nb6359072c78d70ebee1e81adcbab4f01bf2c23245fa365ef83fe8f1f955085e2",
-    "stringToSign": "EMS-HMAC-SHA256\n20110909T233600Z\n20110909/us-east-1/iam/aws4_request\n3988dd9219ec4540cbeb3c16bc488e315a1af23541a7063df987bc23d4e1675f",
-    "authHeader": "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=content-type;host;x-ems-date, Signature=6ea90c1fe3f785583923d6c8a7cae8648e1be6ab9d165fbd5d290dab073a5162"
+    "canonicalizedRequest": "POST\n/\n\ncustomerid:1234567\nkorte:almafa\n\ncustomerid;korte\nb6359072c78d70ebee1e81adcbab4f01bf2c23245fa365ef83fe8f1f955085e2",
+    "stringToSign": "EMS-HMAC-SHA256\n20110909T233600Z\n20110909/us-east-1/iam/aws4_request\nc823d8ab61485be7bd606ad577638ccc0c8715922f8e2e5cf8036dc0460182ee",
+    "authHeader": "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=eca1ccb77cbf6959dc760bd79debccaf24bd6436208d474a8569ccab12e1645d"
   }
 }

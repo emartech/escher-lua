@@ -128,7 +128,7 @@ function Escher:canonicalizeRequest(request, headersToSign)
     url.query,
     self:canonicalizeHeaders(headers),
     "",
-    self:canonicalizeSignedHeaders(headers),
+    self:canonicalizeSignedHeaders(headers, headersToSign),
     crypto.digest(self.hashAlgo, request.body or '')
   }, "\n")
 end
@@ -162,12 +162,14 @@ end
 
 
 
-function Escher:canonicalizeSignedHeaders(headers)
+function Escher:canonicalizeSignedHeaders(headers, signedHeaders)
   local uniqueKeys = {}
   for _, header in pairs(headers) do
     local name = header[1]:lower()
     if name ~= self.authHeaderName:lower() then
-      uniqueKeys[name] = true
+      if (table.contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == 'host') then
+        uniqueKeys[name] = true
+      end
     end
   end
 
@@ -212,7 +214,7 @@ function Escher:generateHeader(request, headersToSign)
   headersToSign = headersToSign or {"host", self.dateHeaderName}
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
           " Credential=" .. self:generateFullCredentials() ..
-          ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers) ..
+          ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers, headersToSign) ..
           ", Signature=" .. self:calculateSignature(request, headersToSign)
 end
 
@@ -387,6 +389,15 @@ function splitter(inputstr, sep)
     i = i + 1
   end
   return t
+end
+
+function table.contains(table, element)
+  for _, value in pairs(table) do
+    if value:lower() == element:lower() then
+      return true
+    end
+  end
+  return false
 end
 
 return Escher
