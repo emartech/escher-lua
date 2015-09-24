@@ -121,7 +121,9 @@ end
 
 function Escher:canonicalizeRequest(request, headersToSign)
   local url = urlhandler.parse(request.url):normalize()
+  headersToSign = self:addDefaultsToHeadersToSign(headersToSign)
   local headers = self:filterHeaders(request.headers, headersToSign)
+
   return table.concat({
     request.method,
     url.path,
@@ -211,7 +213,8 @@ end
 
 
 function Escher:generateHeader(request, headersToSign)
-  headersToSign = headersToSign or {"host", self.dateHeaderName}
+  request.headers = self:addDefaultToHeaders(request.headers)
+
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
           " Credential=" .. self:generateFullCredentials() ..
           ", SignedHeaders=" .. self:canonicalizeSignedHeaders(request.headers, headersToSign) ..
@@ -398,6 +401,34 @@ function table.contains(table, element)
     end
   end
   return false
+end
+
+function Escher:addDefaultToHeaders(headers)
+  local insertDate = true
+
+  for _, values in ipairs(headers) do
+    if values[1]:lower() == self.dateHeaderName:lower() then
+      insertDate = false
+    end
+  end
+
+  if insertDate then
+    table.insert(headers, {self.dateHeaderName, self:toLongDate()})
+  end
+
+  return headers
+end
+
+function Escher:addDefaultsToHeadersToSign(headersToSign)
+  if not table.contains(headersToSign, self.dateHeaderName) then
+    table.insert(headersToSign, self.dateHeaderName)
+  end
+
+  if not table.contains(headersToSign, 'Host') then
+    table.insert(headersToSign, 'Host')
+  end
+
+  return headersToSign
 end
 
 return Escher

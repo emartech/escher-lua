@@ -62,13 +62,13 @@
         ],
         [
           "X-Ems-Auth",
-          "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=eca1ccb77cbf6959dc760bd79debccaf24bd6436208d474a8569ccab12e1645d"
+          "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=3d632cd78fe7a2505a470fc9259dae86f6985d87b852a63b690d96e8f8995686"
         ]
       ],
       "body": "Action=ListUsers&Version=2010-05-08"
     },
-    "canonicalizedRequest": "POST\n/\n\ncustomerid:1234567\nkorte:almafa\n\ncustomerid;korte\nb6359072c78d70ebee1e81adcbab4f01bf2c23245fa365ef83fe8f1f955085e2",
-    "stringToSign": "EMS-HMAC-SHA256\n20110909T233600Z\n20110909/us-east-1/iam/aws4_request\nc823d8ab61485be7bd606ad577638ccc0c8715922f8e2e5cf8036dc0460182ee",
-    "authHeader": "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=eca1ccb77cbf6959dc760bd79debccaf24bd6436208d474a8569ccab12e1645d"
+    "canonicalizedRequest": "POST\n/\n\ncustomerid:1234567\nhost:iam.amazonaws.com\nkorte:almafa\nx-ems-date:20110909T233600Z\n\ncustomerid;host;korte;x-ems-date\nb6359072c78d70ebee1e81adcbab4f01bf2c23245fa365ef83fe8f1f955085e2",
+    "stringToSign": "EMS-HMAC-SHA256\n20110909T233600Z\n20110909/us-east-1/iam/aws4_request\n1508861c857530adc39827893d9eb98dbe519ea6269293622e8bdca5d56e6d71",
+    "authHeader": "EMS-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/iam/aws4_request, SignedHeaders=customerid;host;korte;x-ems-date, Signature=3d632cd78fe7a2505a470fc9259dae86f6985d87b852a63b690d96e8f8995686"
   }
 }
