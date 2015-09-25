@@ -212,6 +212,14 @@ end
 
 
 
+function Escher:signRequest(request, headersToSign)
+  local authHeader = self:generateHeader(request, headersToSign)
+  table.insert(request.headers, {self.authHeaderName, authHeader})
+  return request
+end
+
+
+
 function Escher:generateHeader(request, headersToSign)
   request.headers = self:addDefaultToHeaders(request.headers)
 
@@ -413,7 +421,7 @@ function Escher:addDefaultToHeaders(headers)
   end
 
   if insertDate then
-    table.insert(headers, {self.dateHeaderName, self:toLongDate()})
+    table.insert(headers, {self.dateHeaderName, self.date:fmt('${http}')})
   end
 
   return headers

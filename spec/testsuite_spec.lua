@@ -144,16 +144,22 @@ describe("Escher TestSuite", function()
 
   end)
 
-  describe('generateAuthHeader', function()
+  describe('signRequest', function()
 
     runTestFiles("signing", function(testFile, test)
       it("should generate full authorization header " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local authHeader = escher:generateHeader(test.request, test.headersToSign)
+        test.request = escher:signRequest(test.request, test.headersToSign)
+        local authHeader = ''
 
-        if test.expected.authHeader then
-          assert.are.equals(test.expected.authHeader, authHeader)
+        for _, element in ipairs(test.request.headers) do
+          if element[1] == test.config.authHeaderName then
+            authHeader = element[2]
+          end
         end
+
+        assert.are.equals(test.expected.authHeader, authHeader)
+
      end)
    end)
 
