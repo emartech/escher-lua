@@ -1,7 +1,7 @@
 {
   "title": "should generate the presignedUrl and build other parts of the request for the authenticate process, than authenticate the request",
   "request": {
-    "url": "https://tt1991:Almafa456@facebook.net:5000/pictures/home/2015?album%3Dmyroom&index%3D26&pixel%3D2541#blue",
+    "url": "https://testuser:testpass@facebook.net:5000/pictures/home/2015?album%3Dmyroom&index%3D26&pixel%3D2541#blue",
     "expires": "12345"
   },
   "config": {
