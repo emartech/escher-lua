@@ -9,7 +9,7 @@ local Escher = {
   credentialScope = 'escher_request',
   authHeaderName  = 'X-Escher-Auth',
   dateHeaderName  = 'X-Escher-Date',
-  clockSkew       = 900,
+  clockSkew       = 300,
   date            = false
 }
 
