@@ -10,6 +10,7 @@ branches:
 install:
   - sudo apt-get install luajit
   - sudo apt-get install luarocks
+  - sudo apt-get install libssl-dev
   - sudo luarocks install luasec OPENSSL_DIR=/usr/local
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
