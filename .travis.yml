@@ -12,7 +12,7 @@ install:
   - sudo apt-get install luarocks
   - sudo luarocks install --server=http://luarocks.org/dev openssl
   - sudo whereis openssl
-  - sudo luarocks install luasec OPENSSL_DIR=/usr/bin
+  - sudo luarocks install luasec OPENSSL_DIR=/usr/bin/openssl
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
   - sudo luarocks install rapidjson
