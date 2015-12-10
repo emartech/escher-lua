@@ -11,7 +11,6 @@ install:
   - sudo apt-get install luajit
   - sudo apt-get install luarocks
   - sudo luarocks install --server=http://luarocks.org/dev openssl
-  - sudo whereis openssl
   - sudo luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
   - sudo luarocks install luafilesystem
   - sudo luarocks install busted
