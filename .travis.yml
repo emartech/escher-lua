@@ -1,21 +1,36 @@
-language: erlang
+language: c
+
+sudo: false
 
 env:
-  - LUA="luajit" LUA_PATH="lib/?.lua;;"
+  global:
+    - LUAROCKS=2.2.0
+  matrix:
+    - LUA=lua5.1
+    - LUA=lua5.2
+    - LUA=lua5.3
+    - LUA=luajit
 
 branches:
   only:
     - master
 
-install:
-  - sudo apt-get install luajit
-  - sudo apt-get install luarocks
-  - sudo luarocks install --server=http://luarocks.org/dev openssl
-  - sudo luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
-  - sudo luarocks install luafilesystem
-  - sudo luarocks install busted
-  - sudo luarocks install rapidjson
-  - sudo luarocks install luacrypto
-  - sudo luarocks install date
+before_install:
+  - source .travis/setenv_lua.sh
 
-script: "busted spec"
+install:
+  - luarocks install --server=http://luarocks.org/dev openssl
+  - luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
+  - luarocks install luafilesystem
+  - luarocks install busted
+  - luarocks install rapidjson
+  - luarocks install luacrypto
+  - luarocks install date
+
+script:
+  - busted spec
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
