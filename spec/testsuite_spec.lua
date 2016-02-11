@@ -85,7 +85,10 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-ignore-headers-order.json',
       'spec/emarsys_testsuite/authenticate-valid-presigned-url-with-query.json',
       'spec/emarsys_testsuite/authenticate-valid-presigned-double-url-encoded.json',
-      'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json'
+      'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json',
+      'spec/emarsys_testsuite/authenticate-error-mandatoryheaders-not-array-of-strings.json',
+      'spec/emarsys_testsuite/authenticate-error-mandatoryheaders-not-array.json',
+      'spec/emarsys_testsuite/authenticate-error-notsigned-header.json'
     },
     generateSignedUrl = {
       'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',
@@ -194,7 +197,7 @@ describe("Escher TestSuite", function()
             end
           end
         end
-        local apiKey, err = escher:authenticate(test.request, getApiSecret)
+        local apiKey, err = escher:authenticate(test.request, getApiSecret, test.mandatorySignedHeaders)
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)
@@ -226,7 +229,7 @@ describe("Escher TestSuite", function()
 
         test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
         local request = createRequestFromUrl(test.request.url)
-        local apiKey, err = escher:authenticate(request, getApiSecret)
+        local apiKey, err = escher:authenticate(request, getApiSecret, test.mandatorySignedHeaders)
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)

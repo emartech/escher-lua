@@ -25,7 +25,7 @@ end
 
 
 
-function Escher:authenticate(request, getApiSecret)
+function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   local uri = socketurl.parse(request.url)
   local isPresignedUrl = string.match(uri.query or '', "Signature") and request.method == 'GET'
 
@@ -65,12 +65,28 @@ function Escher:authenticate(request, getApiSecret)
     return self.throwError("Could not parse auth header")
   end
 
-  if not string.match(authParts.signedHeaders, "host") then
-    return self.throwError("The host header is not signed")
+  local headersToSign = splitter(authParts.signedHeaders, ';')
+
+  if mandatorySignedHeaders == nil then
+    mandatorySignedHeaders = {}
   end
 
-  if not string.match(authParts.signedHeaders, "date") and not isPresignedUrl then
-    return self.throwError("The date header is not signed")
+  if type(mandatorySignedHeaders) ~= 'table' then
+    return self.throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
+  end
+
+  table.insert(mandatorySignedHeaders, 'host')
+  if not isPresignedUrl then
+    table.insert(mandatorySignedHeaders, self.dateHeaderName:lower())
+  end
+
+  for _, header in ipairs(mandatorySignedHeaders) do
+    if type(header) ~= 'string' then
+      return self.throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
+    end
+    if not table.contains(headersToSign, header) then
+      return self.throwError("The " ..  header .. " header is not signed")
+    end
   end
 
   if authParts.credentialScope ~= self.credentialScope then
@@ -97,7 +113,6 @@ function Escher:authenticate(request, getApiSecret)
 
   self.apiSecret = apiSecret
   self.date = date(requestDate)
-  local headersToSign = splitter(authParts.signedHeaders, ';')
 
   if authParts.signature ~= self:calculateSignature(request, headersToSign) then
     return self.throwError("The signatures do not match")
