@@ -39,6 +39,6 @@
     ]
   ],
   "expected": {
-    "error": "Could not parse auth header"
+    "error": "Could not parse Authorization header"
   }
 }

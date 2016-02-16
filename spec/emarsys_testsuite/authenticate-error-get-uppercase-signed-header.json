@@ -45,6 +45,6 @@
     ]
   ],
   "expected": {
-    "error": "TEST header should be lowercase"
+    "error": "SignedHeaders must contain lowercase header names in the Authorization header"
   }
 }
