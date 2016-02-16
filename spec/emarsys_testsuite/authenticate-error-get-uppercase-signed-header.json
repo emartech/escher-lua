@@ -1,0 +1,50 @@
+{
+  "title": "should check if all signed headers are lowercase",
+  "description": "",
+  "headersToSign": [
+    "date",
+    "host",
+    "TEST"
+  ],
+  "request": {
+    "method": "GET",
+    "url": "/",
+    "headers": [
+      [
+        "Date",
+        "Fri, 09 Sep 2011 23:36:00 GMT"
+      ],
+      [
+        "Host",
+        "host.foo.com"
+      ],
+      [
+        "TEST",
+        "testHeader"
+      ],
+      [
+        "Authorization",
+        "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/host/aws4_request, SignedHeaders=date;host;TEST, Signature=df0e59d0b15dc930e47b99e6491826a90da5edd32a72ddfaaa573d70471ad911"
+      ]
+    ],
+    "body": ""
+  },
+  "config": {
+    "vendorKey": "AWS4",
+    "algoPrefix": "AWS4",
+    "hashAlgo": "SHA256",
+    "credentialScope": "us-east-1/host/aws4_request",
+    "authHeaderName": "Authorization",
+    "dateHeaderName": "Date",
+    "date": "2011-09-09T23:36:00.000Z"
+  },
+  "keyDb": [
+    [
+      "AKIDEXAMPLE",
+      "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
+    ]
+  ],
+  "expected": {
+    "error": "TEST header should be lowercase"
+  }
+}

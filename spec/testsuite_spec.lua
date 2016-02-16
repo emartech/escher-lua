@@ -88,7 +88,8 @@ function runTestFiles(group, fn)
       'spec/emarsys_testsuite/authenticate-valid-credential-with-spaces.json',
       'spec/emarsys_testsuite/authenticate-error-mandatoryheaders-not-array-of-strings.json',
       'spec/emarsys_testsuite/authenticate-error-mandatoryheaders-not-array.json',
-      'spec/emarsys_testsuite/authenticate-error-notsigned-header.json'
+      'spec/emarsys_testsuite/authenticate-error-notsigned-header.json',
+      'spec/emarsys_testsuite/authenticate-error-get-uppercase-signed-header.json'
     },
     generateSignedUrl = {
       'spec/emarsys_testsuite/presignurl-valid-with-path-query.json',

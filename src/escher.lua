@@ -65,6 +65,12 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return self.throwError("Could not parse auth header")
   end
 
+  for header in string.gmatch(authParts.signedHeaders, "[a-zA-Z0-9%-%_]+") do
+    if string.lower(header) ~= header then
+      return self.throwError(header .. " header should be lowercase")
+    end
+  end
+
   local headersToSign = splitter(authParts.signedHeaders, ';')
 
   if mandatorySignedHeaders == nil then
