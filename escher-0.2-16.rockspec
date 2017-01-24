@@ -11,10 +11,10 @@ description = {
     license = "MIT"
 }
 dependencies = {
-    "luafilesystem",
-    "rapidjson",
-    "luacrypto",
-    "date",
+    "luafilesystem == 1.6.3-2",
+    "rapidjson == 0.4.5-1",
+    "luacrypto == 0.3.2-2",
+    "date == 2.1.1-1",
 }
 build = {
     type = "builtin",
