@@ -19,11 +19,11 @@ Some tips to setup the local development environment on a Mac:
 brew install lua
 brew install cmake
 brew install openssl
-luarocks-5.2 install luafilesystem
+luarocks-5.2 install luafilesystem 1.6.3-2
 luarocks-5.2 install busted
-luarocks-5.2 install rapidjson
-luarocks-5.2 install date
-luarocks-5.2 install luacrypto OPENSSL_INCDIR=/usr/local/Cellar/openssl/1.0.2c/include
+luarocks-5.2 install rapidjson 0.4.5-1
+luarocks-5.2 install luacrypto 0.3.2-2 OPENSSL_INCDIR=/usr/local/Cellar/openssl/1.0.2j/include
+luarocks-5.2 install date 2.1.1-1
 ```
 
 

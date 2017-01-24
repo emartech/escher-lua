@@ -20,11 +20,11 @@ before_install:
 install:
   - luarocks install --server=http://luarocks.org/dev openssl
   - luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
-  - luarocks install luafilesystem
+  - luarocks install luafilesystem 1.6.3-2
   - luarocks install busted
-  - luarocks install rapidjson
-  - luarocks install luacrypto
-  - luarocks install date
+  - luarocks install rapidjson 0.4.5-1
+  - luarocks install luacrypto 0.3.2-2
+  - luarocks install date 2.1.1-1
 
 script:
   - busted spec
