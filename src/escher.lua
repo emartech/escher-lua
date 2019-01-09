@@ -26,7 +26,8 @@ local function splitter(inputstr, sep)
   if sep == nil then
     sep = "%s"
   end
-  local t={} ; i=1
+  local t={}
+  local i=1
   for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
     t[i] = str
     i = i + 1
@@ -149,6 +150,7 @@ end
 
 
 function Escher:getHeader(headers, headerName)
+  local name
   for _, header in ipairs(headers) do
     name = header[1]:lower():match("^%s*(.-)%s*$")
     if name == headerName:lower() then
@@ -179,6 +181,7 @@ end
 
 function Escher:canonicalizeHeaders(headers)
   local normalizedHeaders = {}
+  local name, value
   for _, header in ipairs(headers) do
     name = header[1]:lower():match("^%s*(.-)%s*$")
     if name ~= self.authHeaderName:lower() then

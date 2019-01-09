@@ -24,7 +24,7 @@ local function getConfigFromTestsuite(config)
 end
 
 local function runTestFiles(group, fn)
-  testFiles = {
+  local testFiles = {
     signing = {
       "spec/aws4_testsuite/signrequest-get-vanilla.json",
       "spec/aws4_testsuite/signrequest-post-vanilla.json",
@@ -112,7 +112,7 @@ describe("Escher TestSuite", function()
   describe("load 'GET vanilla' JSON", function()
 
     it("should properly loaded", function()
-      test = readTest("spec/aws4_testsuite/signrequest-get-vanilla.json")
+      local test = readTest("spec/aws4_testsuite/signrequest-get-vanilla.json")
       assert.are.equals(test.request.method, "GET")
     end)
 
