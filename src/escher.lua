@@ -38,6 +38,10 @@ local function split(str, separator)
   return pieces
 end
 
+local function trim(str)
+  return string.match(str, "^%s*(.-)%s*$")
+end
+
 function Escher:new(options)
   options = options or {}
 
@@ -156,7 +160,7 @@ end
 
 function Escher:getHeader(headers, headerName)
   for _, header in ipairs(headers) do
-    local name = header[1]:lower():match("^%s*(.-)%s*$")
+    local name = trim(header[1]:lower())
 
     if name == headerName:lower() then
       return header[2]
@@ -185,7 +189,7 @@ function Escher:canonicalizeHeaders(headers)
   local normalizedHeaders = {}
 
   for _, header in ipairs(headers) do
-    local name = header[1]:lower():match("^%s*(.-)%s*$")
+    local name = trim(header[1]:lower())
 
     if name ~= self.authHeaderName:lower() then
       local value = self:normalizeWhiteSpacesInHeaderValue(header[2])
@@ -260,7 +264,7 @@ function Escher:normalizeWhiteSpacesInHeaderValue(value)
     table.insert(normalizedValue, part)
   end
 
-  return table.concat(normalizedValue, "\""):match("^%s*(.-)%s*$")
+  return trim(table.concat(normalizedValue, "\""))
 end
 
 function Escher:signRequest(request, headersToSign)
