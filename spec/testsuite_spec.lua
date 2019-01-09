@@ -5,7 +5,9 @@ local socketUrl = require("socket.url")
 local function readTest(filename)
   local f = io.open(filename, "r")
   local content = f:read("*all")
+
   f:close()
+
   return json.decode(content)
 end
 
@@ -102,6 +104,7 @@ local function runTestFiles(group, fn)
       "spec/emarsys_testsuite/authenticate-valid-with-generating-presigned-url-with-query.json",
     }
   }
+
   for _, testFile in pairs(testFiles[group]) do
     fn(testFile, readTest(testFile))
   end
@@ -113,6 +116,7 @@ describe("Escher TestSuite", function()
 
     it("should properly loaded", function()
       local test = readTest("spec/aws4_testsuite/signrequest-get-vanilla.json")
+
       assert.are.equals(test.request.method, "GET")
     end)
 
@@ -153,8 +157,9 @@ describe("Escher TestSuite", function()
     runTestFiles("signing", function(testFile, test)
       it("should generate full authorization header " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        test.request = escher:signRequest(test.request, test.headersToSign)
         local authHeader = ""
+
+        test.request = escher:signRequest(test.request, test.headersToSign)
 
         for _, element in ipairs(test.request.headers) do
           if element[1] == test.config.authHeaderName then
@@ -163,12 +168,10 @@ describe("Escher TestSuite", function()
         end
 
         assert.are.equals(test.expected.authHeader, authHeader)
-
      end)
    end)
 
   end)
-
 
   describe("generatePreSignedUrl", function()
 
@@ -178,31 +181,38 @@ describe("Escher TestSuite", function()
         local client = {test.config.accessKeyId, test.config.apiSecret}
         local signedUrl = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
 
-        if test.expected.url then
-          assert.are.equals(test.expected.url, signedUrl)
-        end
+        assert.are.equals(test.expected.url, signedUrl)
       end)
     end)
 
   end)
 
+  local function makeKeyRetriever(keyDb)
+    return function(keyToFind)
+      for _, keySecretPair in ipairs(keyDb) do
+        local key = keySecretPair[1]
+        local secret = keySecretPair[2]
+
+        if key == keyToFind then
+          return secret
+        end
+      end
+    end
+  end
+
   describe("authenticateRequest", function()
 
     runTestFiles("validation", function(testFile, test)
       it("should validate the request " .. testFile, function()
+        local keyDb = makeKeyRetriever(test.keyDb)
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local getApiSecret = function(key)
-          for _, element in pairs(test.keyDb) do
-            if element[1] == key then
-              return element[2]
-            end
-          end
-        end
-        local apiKey, err = escher:authenticate(test.request, getApiSecret, test.mandatorySignedHeaders)
+        local apiKey, err = escher:authenticate(test.request, keyDb, test.mandatorySignedHeaders)
+
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)
         end
+
         if test.expected.error then
           assert.are.equals(test.expected.error, err)
           assert.are.equals(false, apiKey)
@@ -238,24 +248,20 @@ describe("Escher TestSuite", function()
 
     runTestFiles("generateAndAuthenticate", function(testFile, test)
       it("should validate the request " .. testFile, function()
+        local keyDb = makeKeyRetriever(test.keyDb)
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local client = {test.config.accessKeyId, test.config.apiSecret}
-
-        local getApiSecret = function(key)
-          for _, element in pairs(test.keyDb) do
-            if element[1] == key then
-              return element[2]
-            end
-          end
-        end
+        local client = { test.config.accessKeyId, test.config.apiSecret }
 
         test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
+
         local request = createRequestFromUrl(test.request.url)
-        local apiKey, err = escher:authenticate(request, getApiSecret, test.mandatorySignedHeaders)
+        local apiKey, err = escher:authenticate(request, keyDb, test.mandatorySignedHeaders)
+
         if test.expected.apiKey then
           assert.are.equals(nil, err)
           assert.are.equals(test.expected.apiKey, apiKey)
         end
+
         if test.expected.error then
           assert.are.equals(test.expected.error, err)
           assert.are.equals(false, apiKey)
