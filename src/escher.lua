@@ -13,7 +13,26 @@ local Escher = {
   date            = false
 }
 
+local function contains(table, element)
+  for _, value in pairs(table) do
+    if value:lower() == element:lower() then
+      return true
+    end
+  end
+  return false
+end
 
+local function splitter(inputstr, sep)
+  if sep == nil then
+    sep = "%s"
+  end
+  local t={} ; i=1
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    t[i] = str
+    i = i + 1
+  end
+  return t
+end
 
 function Escher:new(o)
   o = o or {}
@@ -90,7 +109,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     if type(header) ~= 'string' then
       return self.throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
     end
-    if not table.contains(headersToSign, header) then
+    if not contains(headersToSign, header) then
       return self.throwError("The " ..  header .. " header is not signed")
     end
   end
@@ -190,7 +209,7 @@ function Escher:canonicalizeSignedHeaders(headers, signedHeaders)
   for _, header in pairs(headers) do
     local name = header[1]:lower()
     if name ~= self.authHeaderName:lower() then
-      if (table.contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == 'host') then
+      if (contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == 'host') then
         uniqueKeys[name] = true
       end
     end
@@ -411,27 +430,6 @@ function Escher:canonicalizeUrl(url)
   return string.sub(canonicalizedUrl, 1, -2)
 end
 
-function splitter(inputstr, sep)
-  if sep == nil then
-    sep = "%s"
-  end
-  local t={} ; i=1
-  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-    t[i] = str
-    i = i + 1
-  end
-  return t
-end
-
-function table.contains(table, element)
-  for _, value in pairs(table) do
-    if value:lower() == element:lower() then
-      return true
-    end
-  end
-  return false
-end
-
 function Escher:addDefaultToHeaders(headers)
   local insertDate = true
 
@@ -449,11 +447,11 @@ function Escher:addDefaultToHeaders(headers)
 end
 
 function Escher:addDefaultsToHeadersToSign(headersToSign)
-  if not table.contains(headersToSign, self.dateHeaderName) then
+  if not contains(headersToSign, self.dateHeaderName) then
     table.insert(headersToSign, self.dateHeaderName)
   end
 
-  if not table.contains(headersToSign, 'Host') then
+  if not contains(headersToSign, 'Host') then
     table.insert(headersToSign, 'Host')
   end
 

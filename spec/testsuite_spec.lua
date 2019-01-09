@@ -2,14 +2,14 @@ local json = require("rapidjson")
 local Escher = require("escher")
 local socketUrl = require("socket.url")
 
-function readTest(filename)
+local function readTest(filename)
   local f = io.open(filename, "r")
   local content = f:read("*all")
   f:close()
   return json.decode(content)
 end
 
-function getConfigFromTestsuite(config)
+local function getConfigFromTestsuite(config)
   return {
     vendorKey = config.vendorKey,
     algoPrefix = config.algoPrefix,
@@ -23,7 +23,7 @@ function getConfigFromTestsuite(config)
   }
 end
 
-function runTestFiles(group, fn)
+local function runTestFiles(group, fn)
   testFiles = {
     signing = {
       'spec/aws4_testsuite/signrequest-get-vanilla.json',
@@ -213,6 +213,27 @@ describe("Escher TestSuite", function()
 
   end)
 
+  local function createRequestFromUrl(url)
+    local parsedUrl = socketUrl.parse(url)
+    local buildedUrl = ''
+    local enableBuild = false
+
+    for _,v in ipairs(socketUrl.parse_path(url)) do
+      if enableBuild then
+        buildedUrl = buildedUrl .. '/' .. v
+      elseif string.find(v, parsedUrl.host) ~= nil then
+        enableBuild = true
+      end
+    end
+
+    return {
+      method = 'GET',
+      url = buildedUrl,
+      body = "",
+      headers = {{'Host', parsedUrl.host}}
+    }
+  end
+
   describe('generateAndAuthenticatePreSignedUrl', function()
 
     runTestFiles("generateAndAuthenticate", function(testFile, test)
@@ -246,24 +267,3 @@ describe("Escher TestSuite", function()
   end)
 
 end)
-
-function createRequestFromUrl(url)
-  local parsedUrl = socketUrl.parse(url)
-  local buildedUrl = ''
-  local enableBuild = false
-
-  for _,v in ipairs(socketUrl.parse_path(url)) do
-    if enableBuild then
-      buildedUrl = buildedUrl .. '/' .. v
-    elseif string.find(v, parsedUrl.host) ~= nil then
-      enableBuild = true
-    end
-  end
-
-  return {
-    method = 'GET',
-    url = buildedUrl,
-    body = "",
-    headers = {{'Host', parsedUrl.host}}
-  }
-end
