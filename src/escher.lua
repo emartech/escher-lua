@@ -14,6 +14,9 @@ local Escher = {
   date            = false
 }
 
+local LONG_DATE_FORMAT = "%Y%m%dT%H%M%SZ"
+local SHORT_DATE_FORMAT = "%Y%m%d"
+
 local function contains(table, element)
   for _, value in pairs(table) do
     if value:lower() == element:lower() then
@@ -25,13 +28,11 @@ local function contains(table, element)
 end
 
 local function split(str, separator)
-  separator = separator or "%s"
-
   local pieces = {}
   local i = 1
 
-  for str in string.gmatch(str, "([^" .. separator .. "]+)") do
-    pieces[i] = str
+  for matched in string.gmatch(str, "([^" .. separator .. "]+)") do
+    pieces[i] = matched
     i = i + 1
   end
 
@@ -40,14 +41,6 @@ end
 
 local function trim(str)
   return string.match(str, "^%s*(.-)%s*$")
-end
-
-local function toLongDate(date)
-  return date:fmt("%Y%m%dT%H%M%SZ")
-end
-
-local function toShortDate(date)
-  return date:fmt("%Y%m%d")
 end
 
 function Escher:new(options)
@@ -93,10 +86,9 @@ local function parseQuery(query, algoPrefix)
 end
 
 local function canonicalizeUrl(url)
-  local splittedUrl = split(url, "&")
   local canonicalizedUrl = ""
 
-  for _, value in ipairs(splittedUrl) do
+  for _, value in ipairs(split(url, "&")) do
     if not string.match(value, "Signature") then
       canonicalizedUrl = canonicalizedUrl .. value .. "&"
     end
@@ -133,7 +125,7 @@ end
 
 local function calculateSignature(self, request, headersToSign)
   local stringToSign = self:getStringToSign(request, headersToSign)
-  local signingKey = crypto.hmac.digest(self.hashAlgo, toShortDate(self.date), self.algoPrefix .. self.apiSecret, true)
+  local signingKey = crypto.hmac.digest(self.hashAlgo, self.date:fmt(SHORT_DATE_FORMAT), self.algoPrefix .. self.apiSecret, true)
 
   for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
     signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
@@ -369,8 +361,8 @@ end
 function Escher:getStringToSign(request, headersToSign)
   return table.concat({
     string.format("%s-HMAC-%s", self.algoPrefix, self.hashAlgo),
-    toLongDate(self.date),
-    string.format("%s/%s", toShortDate(self.date), self.credentialScope),
+    self.date:fmt(LONG_DATE_FORMAT),
+    string.format("%s/%s", self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope),
     crypto.digest(self.hashAlgo, self:canonicalizeRequest(request, headersToSign))
   }, "\n")
 end
@@ -392,7 +384,7 @@ local function addDefaultToHeaders(self, headers)
 end
 
 local function generateFullCredentials(self)
-  return string.format("%s/%s/%s", self.accessKeyId, toShortDate(self.date), self.credentialScope)
+  return string.format("%s/%s/%s", self.accessKeyId, self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope)
 end
 
 local function generateHeader(self, request, headersToSign)
@@ -424,10 +416,10 @@ function Escher:generatePreSignedUrl(url, client, expires)
   local body = "UNSIGNED-PAYLOAD"
   local params = {
     Algorithm = self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
-    Credentials = string.gsub(client[1] .. "/" .. toShortDate(self.date) .. "/" .. self.credentialScope, "/", "%%2F"),
-    Date = toLongDate(self.date),
+    Credentials = string.gsub(client[1] .. "/" .. self.date:fmt(SHORT_DATE_FORMAT) .. "/" .. self.credentialScope, "/", "%%2F"),
+    Date = self.date:fmt(LONG_DATE_FORMAT),
     Expires = expires,
-    SignedHeaders = headersToSign[1],
+    SignedHeaders = headersToSign[1]
   }
   local hash = ""
 
@@ -450,7 +442,7 @@ function Escher:generatePreSignedUrl(url, client, expires)
     method = "GET",
     url = parsedSignedUrl.path .. "?" .. (parsedSignedUrl.query),
     headers = headers,
-    body = body,
+    body = body
   }
   local signature = calculateSignature(self, request, headersToSign)
 
