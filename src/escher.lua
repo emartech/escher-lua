@@ -55,6 +55,20 @@ local function trim(str)
   return string.match(str, "^%s*(.-)%s*$")
 end
 
+local function merge(target, ...)
+  if not target then return target end
+
+  for _, obj in pairs({...}) do
+    if obj then
+      for k, v in pairs(obj) do
+        target[k] = v
+      end
+    end
+  end
+
+  return target
+end
+
 local function getHeaderValue(headers, headerName)
   for _, header in ipairs(headers) do
     local name = trim(header[1]:lower())
@@ -182,13 +196,11 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     end
   end
 
-  if not mandatorySignedHeaders then
-    mandatorySignedHeaders = {}
-  end
-
-  if type(mandatorySignedHeaders) ~= "table" then
+  if type(mandatorySignedHeaders) ~= "table" and mandatorySignedHeaders ~= nil then
     return throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
   end
+
+  mandatorySignedHeaders = merge({}, mandatorySignedHeaders)
 
   table.insert(mandatorySignedHeaders, "host")
 
