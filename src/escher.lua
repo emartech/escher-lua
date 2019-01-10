@@ -3,19 +3,31 @@ local date = require("date")
 local urlhandler = require("escher.urlhandler")
 local socketurl = require("socket.url")
 
-local Escher = {
-  algoPrefix      = "ESR",
-  vendorKey       = "ESCHER",
-  hashAlgo        = "SHA256",
-  credentialScope = "escher_request",
-  authHeaderName  = "X-Escher-Auth",
-  dateHeaderName  = "X-Escher-Date",
-  clockSkew       = 300,
-  date            = false
-}
-
 local LONG_DATE_FORMAT = "%Y%m%dT%H%M%SZ"
 local SHORT_DATE_FORMAT = "%Y%m%d"
+
+local Escher = {}
+
+Escher.__index = Escher
+
+function Escher:new(options)
+  options = options or {}
+
+  local object = {
+    algoPrefix = options.algoPrefix or "ESR",
+    vendorKey = options.vendorKey or "ESCHER",
+    hashAlgo = options.hashAlgo or "SHA256",
+    apiSecret = options.apiSecret,
+    accessKeyId = options.accessKeyId,
+    credentialScope = options.credentialScope or "escher_request",
+    authHeaderName = options.authHeaderName or "X-Escher-Auth",
+    dateHeaderName = options.dateHeaderName or "X-Escher-Date",
+    date = date(options.date or os.date("!%c")),
+    clockSkew = options.clockSkew or 300
+  }
+
+  return setmetatable(object, self)
+end
 
 local function contains(table, element)
   for _, value in pairs(table) do
@@ -41,18 +53,6 @@ end
 
 local function trim(str)
   return string.match(str, "^%s*(.-)%s*$")
-end
-
-function Escher:new(options)
-  options = options or {}
-
-  options.date = date(options.date or os.date("!%c"))
-
-  setmetatable(options, {
-    __index = Escher
-  })
-
-  return options
 end
 
 local function getHeaderValue(headers, headerName)
