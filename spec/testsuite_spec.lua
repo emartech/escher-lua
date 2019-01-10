@@ -159,7 +159,7 @@ describe("Escher TestSuite", function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
         local authHeader = ""
 
-        test.request = escher:signRequest(test.request, test.headersToSign)
+        escher:signRequest(test.request, test.headersToSign)
 
         for _, element in ipairs(test.request.headers) do
           if element[1] == test.config.authHeaderName then

@@ -414,8 +414,6 @@ function Escher:signRequest(request, headersToSign)
   local authHeader = self:generateHeader(request, headersToSign)
 
   table.insert(request.headers, { self.authHeaderName, authHeader })
-
-  return request
 end
 
 function Escher:generatePreSignedUrl(url, client, expires)
