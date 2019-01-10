@@ -78,6 +78,44 @@ describe("Escher", function()
             assert.are.same({ "x-ems-date" }, headersToSign)
         end)
 
+        context("when URL is pre-signed", function()
+
+            it("should not mutate passed in parameters", function()
+                local escher = Escher:new({
+                    algoPrefix = "EMS",
+                    vendorKey = "EMS",
+                    hashAlgo = "SHA256",
+                    credentialScope = "us-east-1/host/aws4_request",
+                    date = "2011-05-11T12:00:00.000Z"
+                })
+                local request = {
+                    method = "GET",
+                    url = "/something?foo=bar&baz=barbaz&X-EMS-Algorithm=EMS-HMAC-SHA256&X-EMS-Credentials=th3K3y%2F20110511%2Fus-east-1%2Fhost%2Faws4_request&X-EMS-Date=20110511T120000Z&X-EMS-Expires=123456&X-EMS-SignedHeaders=host&X-EMS-Signature=fbc9dbb91670e84d04ad2ae7505f4f52ab3ff9e192b8233feeae57e9022c2b67",
+                    headers = {
+                        { "Host", "example.com" }
+                    },
+                    body = ""
+                }
+                local function keyDb()
+                    return "very_secure"
+                end
+                local headersToSign = {}
+
+                escher:authenticate(request, keyDb, headersToSign)
+
+                assert.are.same({
+                    method = "GET",
+                    url = "/something?foo=bar&baz=barbaz&X-EMS-Algorithm=EMS-HMAC-SHA256&X-EMS-Credentials=th3K3y%2F20110511%2Fus-east-1%2Fhost%2Faws4_request&X-EMS-Date=20110511T120000Z&X-EMS-Expires=123456&X-EMS-SignedHeaders=host&X-EMS-Signature=fbc9dbb91670e84d04ad2ae7505f4f52ab3ff9e192b8233feeae57e9022c2b67",
+                    headers = {
+                        { "Host", "example.com" }
+                    },
+                    body = ""
+                }, request)
+                assert.are.same({}, headersToSign)
+            end)
+
+        end)
+
     end)
 
 end)

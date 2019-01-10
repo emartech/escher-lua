@@ -149,6 +149,8 @@ local function calculateSignature(self, request, headersToSign)
 end
 
 function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
+  request = merge({}, request)
+
   local uri = socketurl.parse(request.url)
   local isPresignedUrl = string.match(uri.query or "", "Signature") and request.method == "GET"
 
