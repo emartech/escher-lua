@@ -401,7 +401,7 @@ local function generateFullCredentials(self)
   return string.format("%s/%s/%s", self.accessKeyId, self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope)
 end
 
-local function generateHeader(self, request, headersToSign)
+function Escher:generateHeader(request, headersToSign)
   request.headers = addDefaultToHeaders(self, request.headers)
 
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
@@ -411,7 +411,7 @@ local function generateHeader(self, request, headersToSign)
 end
 
 function Escher:signRequest(request, headersToSign)
-  local authHeader = generateHeader(self, request, headersToSign)
+  local authHeader = self:generateHeader(request, headersToSign)
 
   table.insert(request.headers, { self.authHeaderName, authHeader })
 
