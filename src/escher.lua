@@ -137,8 +137,137 @@ local function isDateWithinRange(requestDate, signedDate, expires)
   return diff <= expires
 end
 
+local function addIfNotExists(headers, defaultHeaderName)
+  if not contains(headers, defaultHeaderName) then
+    table.insert(headers, defaultHeaderName)
+  end
+end
+
+local function shouldSignHeader(headerName, headersToSign)
+  for _, header in ipairs(headersToSign) do
+    if headerName:lower() == header:lower() then
+      return true
+    end
+  end
+
+  return false
+end
+
+local function getHeadersToSign(headers, headersToSign)
+  local filteredHeaders = {}
+
+  for _, header in ipairs(headers) do
+    if shouldSignHeader(header[1], headersToSign) then
+      table.insert(filteredHeaders, header)
+    end
+  end
+
+  return filteredHeaders
+end
+
+local function normalizeWhiteSpacesInHeaderValue(value)
+  value = string.format(" %s ", value)
+
+  local normalizedValue = {}
+  local n = 0
+
+  for part in string.gmatch(value, "[^\"]+") do
+    n = n + 1
+
+    if n % 2 == 1 then
+      part = part:gsub("%s+", " ")
+    end
+
+    table.insert(normalizedValue, part)
+  end
+
+  return trim(table.concat(normalizedValue, "\""))
+end
+
+local function canonicalizeHeaders(headers, authHeaderName)
+  local normalizedHeaders = {}
+
+  for _, header in ipairs(headers) do
+    local name = trim(header[1]:lower())
+
+    if name ~= authHeaderName:lower() then
+      local value = normalizeWhiteSpacesInHeaderValue(header[2])
+
+      table.insert(normalizedHeaders, { name, value })
+    end
+  end
+
+  local groupedHeaders = {}
+  local lastKey
+
+  for _, header in ipairs(normalizedHeaders) do
+    if lastKey == header[1] then
+      groupedHeaders[#groupedHeaders] = string.format("%s,%s", groupedHeaders[#groupedHeaders], header[2])
+    else
+      table.insert(groupedHeaders, string.format("%s:%s", header[1], header[2]))
+    end
+
+    lastKey = header[1]
+  end
+
+  table.sort(groupedHeaders)
+
+  return table.concat(groupedHeaders, "\n")
+end
+
+local function canonicalizeSignedHeaders(self, headers, signedHeaders)
+  local uniqueKeys = {}
+
+  for _, header in pairs(headers) do
+    local name = header[1]:lower()
+
+    if name ~= self.authHeaderName:lower() then
+      if (contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == "host") then
+        uniqueKeys[name] = true
+      end
+    end
+  end
+
+  local normalizedKeys = {}
+
+  for key, _ in pairs(uniqueKeys) do
+    table.insert(normalizedKeys, key)
+  end
+
+  table.sort(normalizedKeys)
+
+  return table.concat(normalizedKeys, ";")
+end
+
+local function canonicalizeRequest(self, request, headersToSign)
+  addIfNotExists(headersToSign, self.dateHeaderName)
+  addIfNotExists(headersToSign, "Host")
+
+  local url = urlhandler.parse(request.url):normalize()
+  local headers = getHeadersToSign(request.headers, headersToSign)
+
+  return table.concat({
+    request.method,
+    url.path,
+    url.query,
+    canonicalizeHeaders(headers, self.authHeaderName),
+    "",
+    canonicalizeSignedHeaders(self, headers, headersToSign),
+    crypto.digest(self.hashAlgo, request.body or "")
+  }, "\n")
+end
+
+local function getStringToSign(self, request, headersToSign)
+  return table.concat({
+    string.format("%s-HMAC-%s", self.algoPrefix, self.hashAlgo),
+    self.date:fmt(LONG_DATE_FORMAT),
+    string.format("%s/%s", self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope),
+    crypto.digest(self.hashAlgo, canonicalizeRequest(self, request, headersToSign))
+  }, "\n")
+end
+
 local function calculateSignature(self, request, headersToSign)
-  local stringToSign = self:getStringToSign(request, headersToSign)
+  local stringToSign = getStringToSign(self, request, headersToSign)
   local signingKey = crypto.hmac.digest(self.hashAlgo, self.date:fmt(SHORT_DATE_FORMAT), self.algoPrefix .. self.apiSecret, true)
 
   for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
@@ -252,135 +381,6 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   return authParts.accessKeyId
 end
 
-local function shouldSignHeader(headerName, headersToSign)
-  for _, header in ipairs(headersToSign) do
-    if headerName:lower() == header:lower() then
-      return true
-    end
-  end
-
-  return false
-end
-
-local function addIfNotExists(headers, defaultHeaderName)
-  if not contains(headers, defaultHeaderName) then
-    table.insert(headers, defaultHeaderName)
-  end
-end
-
-local function getHeadersToSign(headers, headersToSign)
-  local filteredHeaders = {}
-
-  for _, header in ipairs(headers) do
-    if shouldSignHeader(header[1], headersToSign) then
-      table.insert(filteredHeaders, header)
-    end
-  end
-
-  return filteredHeaders
-end
-
-local function normalizeWhiteSpacesInHeaderValue(value)
-  value = string.format(" %s ", value)
-
-  local normalizedValue = {}
-  local n = 0
-
-  for part in string.gmatch(value, "[^\"]+") do
-    n = n + 1
-
-    if n % 2 == 1 then
-      part = part:gsub("%s+", " ")
-    end
-
-    table.insert(normalizedValue, part)
-  end
-
-  return trim(table.concat(normalizedValue, "\""))
-end
-
-local function canonicalizeHeaders(headers, authHeaderName)
-  local normalizedHeaders = {}
-
-  for _, header in ipairs(headers) do
-    local name = trim(header[1]:lower())
-
-    if name ~= authHeaderName:lower() then
-      local value = normalizeWhiteSpacesInHeaderValue(header[2])
-
-      table.insert(normalizedHeaders, { name, value })
-    end
-  end
-
-  local groupedHeaders = {}
-  local lastKey
-
-  for _, header in ipairs(normalizedHeaders) do
-    if lastKey == header[1] then
-      groupedHeaders[#groupedHeaders] = string.format("%s,%s", groupedHeaders[#groupedHeaders], header[2])
-    else
-      table.insert(groupedHeaders, string.format("%s:%s", header[1], header[2]))
-    end
-
-    lastKey = header[1]
-  end
-
-  table.sort(groupedHeaders)
-
-  return table.concat(groupedHeaders, "\n")
-end
-
-local function canonicalizeSignedHeaders(self, headers, signedHeaders)
-  local uniqueKeys = {}
-
-  for _, header in pairs(headers) do
-    local name = header[1]:lower()
-
-    if name ~= self.authHeaderName:lower() then
-      if (contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == "host") then
-        uniqueKeys[name] = true
-      end
-    end
-  end
-
-  local normalizedKeys = {}
-
-  for key, _ in pairs(uniqueKeys) do
-    table.insert(normalizedKeys, key)
-  end
-
-  table.sort(normalizedKeys)
-
-  return table.concat(normalizedKeys, ";")
-end
-
-function Escher:canonicalizeRequest(request, headersToSign)
-  addIfNotExists(headersToSign, self.dateHeaderName)
-  addIfNotExists(headersToSign, "Host")
-
-  local url = urlhandler.parse(request.url):normalize()
-  local headers = getHeadersToSign(request.headers, headersToSign)
-
-  return table.concat({
-    request.method,
-    url.path,
-    url.query,
-    canonicalizeHeaders(headers, self.authHeaderName),
-    "",
-    canonicalizeSignedHeaders(self, headers, headersToSign),
-    crypto.digest(self.hashAlgo, request.body or "")
-  }, "\n")
-end
-
-function Escher:getStringToSign(request, headersToSign)
-  return table.concat({
-    string.format("%s-HMAC-%s", self.algoPrefix, self.hashAlgo),
-    self.date:fmt(LONG_DATE_FORMAT),
-    string.format("%s/%s", self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope),
-    crypto.digest(self.hashAlgo, self:canonicalizeRequest(request, headersToSign))
-  }, "\n")
-end
-
 local function addDateHeaderIfNotExists(self, headers)
   local insertDate = true
 
@@ -461,5 +461,8 @@ function Escher:generatePreSignedUrl(url, client, expires)
 
   return signedUrl .. "X-EMS-Signature=" .. signature  .. hash
 end
+
+Escher.canonicalizeRequest = canonicalizeRequest
+Escher.getStringToSign = getStringToSign
 
 return Escher
