@@ -17,6 +17,7 @@ describe("Escher", function()
                 date = "2019-01-10T20:25:00.000Z",
                 clockSkew = 300
             }
+
             local escher = Escher:new(options)
 
             assert.are.Not.equals(options, escher)
@@ -48,6 +49,7 @@ describe("Escher", function()
                 dateHeaderName = "X-EMS-Date",
                 date = "2011-09-09T23:36:00.000Z"
             })
+
             local request = {
                 method = "GET",
                 url = "/",
@@ -58,9 +60,11 @@ describe("Escher", function()
                 },
                 body = ""
             }
+
             local function keyDb()
                 return "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
             end
+
             local headersToSign = { "x-ems-date" }
 
             escher:authenticate(request, keyDb, headersToSign)
@@ -88,6 +92,7 @@ describe("Escher", function()
                     credentialScope = "us-east-1/host/aws4_request",
                     date = "2011-05-11T12:00:00.000Z"
                 })
+
                 local request = {
                     method = "GET",
                     url = "/something?foo=bar&baz=barbaz&X-EMS-Algorithm=EMS-HMAC-SHA256&X-EMS-Credentials=th3K3y%2F20110511%2Fus-east-1%2Fhost%2Faws4_request&X-EMS-Date=20110511T120000Z&X-EMS-Expires=123456&X-EMS-SignedHeaders=host&X-EMS-Signature=fbc9dbb91670e84d04ad2ae7505f4f52ab3ff9e192b8233feeae57e9022c2b67",
@@ -96,9 +101,11 @@ describe("Escher", function()
                     },
                     body = ""
                 }
+
                 local function keyDb()
                     return "very_secure"
                 end
+
                 local headersToSign = {}
 
                 escher:authenticate(request, keyDb, headersToSign)
@@ -114,6 +121,46 @@ describe("Escher", function()
                 assert.are.same({}, headersToSign)
             end)
 
+        end)
+
+    end)
+
+    describe("#generateHeader", function()
+
+        it("should not mutate passed in parameters", function()
+            local escher = Escher:new({
+                algoPrefix = "AWS4",
+                vendorKey = "AWS4",
+                hashAlgo = "SHA256",
+                credentialScope = "us-east-1/host/aws4_request",
+                authHeaderName = "X-EMS-Auth",
+                dateHeaderName = "X-EMS-Date",
+                date = "2011-09-09T23:36:00.000Z",
+                apiSecret = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                accessKeyId = "AKIDEXAMPLE"
+            })
+
+            local request = {
+                method = "GET",
+                url = "/",
+                headers = {
+                    { "Host", "host.foo.com" }
+                },
+                body = ""
+            }
+
+            local headersToSign = { "x-ems-date" }
+
+            local authHeader = escher:generateHeader(request, headersToSign)
+
+            assert.are.same({
+                method = "GET",
+                url = "/",
+                headers = {
+                    { "Host", "host.foo.com" }
+                },
+                body = ""
+            }, request)
         end)
 
     end)

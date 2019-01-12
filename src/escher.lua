@@ -381,7 +381,7 @@ function Escher:getStringToSign(request, headersToSign)
   }, "\n")
 end
 
-local function addDefaultToHeaders(self, headers)
+local function addDateHeaderIfNotExists(self, headers)
   local insertDate = true
 
   for _, values in ipairs(headers) do
@@ -393,8 +393,6 @@ local function addDefaultToHeaders(self, headers)
   if insertDate then
     table.insert(headers, { self.dateHeaderName, self.date:fmt("${http}") })
   end
-
-  return headers
 end
 
 local function generateFullCredentials(self)
@@ -402,7 +400,10 @@ local function generateFullCredentials(self)
 end
 
 function Escher:generateHeader(request, headersToSign)
-  request.headers = addDefaultToHeaders(self, request.headers)
+  request = merge({}, request)
+  request.headers = merge({}, request.headers)
+
+  addDateHeaderIfNotExists(self, request.headers)
 
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
     " Credential=" .. generateFullCredentials(self) ..
