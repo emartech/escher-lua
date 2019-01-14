@@ -32,6 +32,10 @@ function Escher:new(options)
   return setmetatable(object, meta)
 end
 
+setmetatable(Escher, {
+  __call = Escher.new
+})
+
 local function split(str, separator)
   local pieces = {}
   local i = 1
@@ -127,7 +131,7 @@ local function isDateWithinRange(requestDate, signedDate, expires)
 end
 
 local function getStringToSign(self, request, headersToSign)
-  local canonicalizer = Canonicalizer:new(self)
+  local canonicalizer = Canonicalizer(self)
 
   return table.concat({
     self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
@@ -276,7 +280,7 @@ function Escher:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
-  local canonicalizer = Canonicalizer:new(self)
+  local canonicalizer = Canonicalizer(self)
 
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
     " Credential=" .. generateFullCredentials(self) ..

@@ -18,6 +18,10 @@ function Canonicalizer:new(options)
   return setmetatable(object, meta)
 end
 
+setmetatable(Canonicalizer, {
+  __call = Canonicalizer.new
+})
+
 local function addIfNotExists(headers, defaultHeaderName)
   if not utils.contains(headers, defaultHeaderName) then
     table.insert(headers, defaultHeaderName)

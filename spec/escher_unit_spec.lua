@@ -37,6 +37,30 @@ describe("Escher", function()
 
     end)
 
+    describe("constructor", function()
+
+        it("should create an Escher instance", function()
+            local options = {
+                algoPrefix = "AWS4",
+                vendorKey = "AWS4",
+                hashAlgo = "SHA256",
+                apiSecret = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                accessKeyId = "AKIDEXAMPLE",
+                credentialScope = "my/custom/scope",
+                authHeaderName = "X-EMS-Auth",
+                dateHeaderName = "X-EMS-Date",
+                date = "2019-01-10T20:25:00.000Z",
+                clockSkew = 300
+            }
+
+            assert.are.same(
+                Escher:new(options),
+                Escher(options)
+            )
+        end)
+
+    end)
+
     describe("#authenticate", function()
 
         it("should not mutate passed in parameters", function()
