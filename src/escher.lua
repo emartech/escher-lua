@@ -1,14 +1,17 @@
 local crypto = require("crypto")
 local date = require("date")
-local urlhandler = require("escher.urlhandler")
 local socketurl = require("socket.url")
+local utils = require("escher.utils")
+local Canonicalizer = require("escher.canonicalizer")
 
 local LONG_DATE_FORMAT = "%Y%m%dT%H%M%SZ"
 local SHORT_DATE_FORMAT = "%Y%m%d"
 
 local Escher = {}
 
-Escher.__index = Escher
+local meta = {
+  __index = Escher
+}
 
 function Escher:new(options)
   options = options or {}
@@ -26,17 +29,7 @@ function Escher:new(options)
     clockSkew = options.clockSkew or 300
   }
 
-  return setmetatable(object, self)
-end
-
-local function contains(table, element)
-  for _, value in pairs(table) do
-    if value:lower() == element:lower() then
-      return true
-    end
-  end
-
-  return false
+  return setmetatable(object, meta)
 end
 
 local function split(str, separator)
@@ -49,10 +42,6 @@ local function split(str, separator)
   end
 
   return pieces
-end
-
-local function trim(str)
-  return string.match(str, "^%s*(.-)%s*$")
 end
 
 local function merge(target, ...)
@@ -71,7 +60,7 @@ end
 
 local function getHeaderValue(headers, headerName)
   for _, header in ipairs(headers) do
-    local name = trim(header[1]:lower())
+    local name = utils.trim(header[1]:lower())
 
     if name == headerName:lower() then
       return header[2]
@@ -137,132 +126,14 @@ local function isDateWithinRange(requestDate, signedDate, expires)
   return diff <= expires
 end
 
-local function addIfNotExists(headers, defaultHeaderName)
-  if not contains(headers, defaultHeaderName) then
-    table.insert(headers, defaultHeaderName)
-  end
-end
-
-local function shouldSignHeader(headerName, headersToSign)
-  for _, header in ipairs(headersToSign) do
-    if headerName:lower() == header:lower() then
-      return true
-    end
-  end
-
-  return false
-end
-
-local function getHeadersToSign(headers, headersToSign)
-  local filteredHeaders = {}
-
-  for _, header in ipairs(headers) do
-    if shouldSignHeader(header[1], headersToSign) then
-      table.insert(filteredHeaders, header)
-    end
-  end
-
-  return filteredHeaders
-end
-
-local function normalizeWhiteSpacesInHeaderValue(value)
-  value = string.format(" %s ", value)
-
-  local normalizedValue = {}
-  local n = 0
-
-  for part in string.gmatch(value, "[^\"]+") do
-    n = n + 1
-
-    if n % 2 == 1 then
-      part = part:gsub("%s+", " ")
-    end
-
-    table.insert(normalizedValue, part)
-  end
-
-  return trim(table.concat(normalizedValue, "\""))
-end
-
-local function canonicalizeHeaders(headers, authHeaderName)
-  local normalizedHeaders = {}
-
-  for _, header in ipairs(headers) do
-    local name = trim(header[1]:lower())
-
-    if name ~= authHeaderName:lower() then
-      local value = normalizeWhiteSpacesInHeaderValue(header[2])
-
-      table.insert(normalizedHeaders, { name, value })
-    end
-  end
-
-  local groupedHeaders = {}
-  local lastKey
-
-  for _, header in ipairs(normalizedHeaders) do
-    if lastKey == header[1] then
-      groupedHeaders[#groupedHeaders] = string.format("%s,%s", groupedHeaders[#groupedHeaders], header[2])
-    else
-      table.insert(groupedHeaders, string.format("%s:%s", header[1], header[2]))
-    end
-
-    lastKey = header[1]
-  end
-
-  table.sort(groupedHeaders)
-
-  return table.concat(groupedHeaders, "\n")
-end
-
-local function canonicalizeSignedHeaders(self, headers, signedHeaders)
-  local uniqueKeys = {}
-
-  for _, header in pairs(headers) do
-    local name = header[1]:lower()
-
-    if name ~= self.authHeaderName:lower() then
-      if (contains(signedHeaders, name) or name == self.dateHeaderName:lower() or name == "host") then
-        uniqueKeys[name] = true
-      end
-    end
-  end
-
-  local normalizedKeys = {}
-
-  for key, _ in pairs(uniqueKeys) do
-    table.insert(normalizedKeys, key)
-  end
-
-  table.sort(normalizedKeys)
-
-  return table.concat(normalizedKeys, ";")
-end
-
-local function canonicalizeRequest(self, request, headersToSign)
-  addIfNotExists(headersToSign, self.dateHeaderName)
-  addIfNotExists(headersToSign, "Host")
-
-  local url = urlhandler.parse(request.url):normalize()
-  local headers = getHeadersToSign(request.headers, headersToSign)
-
-  return table.concat({
-    request.method,
-    url.path,
-    url.query,
-    canonicalizeHeaders(headers, self.authHeaderName),
-    "",
-    canonicalizeSignedHeaders(self, headers, headersToSign),
-    crypto.digest(self.hashAlgo, request.body or "")
-  }, "\n")
-end
-
 local function getStringToSign(self, request, headersToSign)
+  local canonicalizer = Canonicalizer:new(self)
+
   return table.concat({
-    string.format("%s-HMAC-%s", self.algoPrefix, self.hashAlgo),
+    self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
     self.date:fmt(LONG_DATE_FORMAT),
-    string.format("%s/%s", self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope),
-    crypto.digest(self.hashAlgo, canonicalizeRequest(self, request, headersToSign))
+    self.date:fmt(SHORT_DATE_FORMAT) .. "/" .. self.credentialScope,
+    crypto.digest(self.hashAlgo, canonicalizer:canonicalizeRequest(request, headersToSign))
   }, "\n")
 end
 
@@ -344,7 +215,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
       return throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
     end
 
-    if not contains(headersToSign, header) then
+    if not utils.contains(headersToSign, header) then
       return throwError("The " ..  header .. " header is not signed")
     end
   end
@@ -405,9 +276,11 @@ function Escher:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
+  local canonicalizer = Canonicalizer:new(self)
+
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
     " Credential=" .. generateFullCredentials(self) ..
-    ", SignedHeaders=" .. canonicalizeSignedHeaders(self, request.headers, headersToSign) ..
+    ", SignedHeaders=" .. canonicalizer:canonicalizeSignedHeaders(request.headers, headersToSign) ..
     ", Signature=" .. calculateSignature(self, request, headersToSign)
 end
 
@@ -464,7 +337,6 @@ function Escher:generatePreSignedUrl(url, client, expires)
   return signedUrl .. "X-EMS-Signature=" .. signature  .. hash
 end
 
-Escher.canonicalizeRequest = canonicalizeRequest
 Escher.getStringToSign = getStringToSign
 
 return Escher

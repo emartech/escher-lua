@@ -1,7 +1,8 @@
 local json = require("rapidjson")
-local Escher = require("escher")
 local socketUrl = require("socket.url")
 local date = require("date")
+local Escher = require("escher")
+local Canonicalizer = require("escher.canonicalizer")
 
 local function readTest(filename)
   local f = io.open(filename, "r")
@@ -111,6 +112,25 @@ local function runTestFiles(group, fn)
   end
 end
 
+describe("Canonicalizer TestSuite", function()
+
+  describe("canonicalizeRequest", function()
+
+    runTestFiles("signing", function(testFile, test)
+      it("should canonicalize the request " .. testFile, function()
+        local canonicalizer = Canonicalizer:new(getConfigFromTestsuite(test.config))
+        local canonicalizedRequest = canonicalizer:canonicalizeRequest(test.request, test.headersToSign)
+
+        if test.expected.canonicalizedRequest then
+          assert.are.equals(test.expected.canonicalizedRequest, canonicalizedRequest)
+        end
+      end)
+    end)
+
+  end)
+
+end)
+
 describe("Escher TestSuite", function()
 
   describe("load 'GET vanilla' JSON", function()
@@ -119,21 +139,6 @@ describe("Escher TestSuite", function()
       local test = readTest("spec/aws4_testsuite/signrequest-get-vanilla.json")
 
       assert.are.equals(test.request.method, "GET")
-    end)
-
-  end)
-
-  describe("canonicalizeRequest", function()
-
-    runTestFiles("signing", function(testFile, test)
-      it("should canonicalize the request " .. testFile, function()
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local canonicalizedRequest = escher:canonicalizeRequest(test.request, test.headersToSign)
-
-        if test.expected.canonicalizedRequest then
-          assert.are.equals(test.expected.canonicalizedRequest, canonicalizedRequest)
-        end
-      end)
     end)
 
   end)
