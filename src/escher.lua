@@ -3,9 +3,7 @@ local date = require("date")
 local socketurl = require("socket.url")
 local utils = require("escher.utils")
 local Canonicalizer = require("escher.canonicalizer")
-
-local LONG_DATE_FORMAT = "%Y%m%dT%H%M%SZ"
-local SHORT_DATE_FORMAT = "%Y%m%d"
+local Signer = require("escher.signer")
 
 local Escher = {}
 
@@ -130,28 +128,6 @@ local function isDateWithinRange(requestDate, signedDate, expires)
   return diff <= expires
 end
 
-local function getStringToSign(self, request, headersToSign)
-  local canonicalizer = Canonicalizer(self)
-
-  return table.concat({
-    self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
-    self.date:fmt(LONG_DATE_FORMAT),
-    self.date:fmt(SHORT_DATE_FORMAT) .. "/" .. self.credentialScope,
-    crypto.digest(self.hashAlgo, canonicalizer:canonicalizeRequest(request, headersToSign))
-  }, "\n")
-end
-
-local function calculateSignature(self, request, headersToSign)
-  local stringToSign = getStringToSign(self, request, headersToSign)
-  local signingKey = crypto.hmac.digest(self.hashAlgo, self.date:fmt(SHORT_DATE_FORMAT), self.algoPrefix .. self.apiSecret, true)
-
-  for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
-    signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
-  end
-
-  return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
-end
-
 function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   request = merge({}, request)
 
@@ -232,7 +208,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return throwError("Only SHA256 and SHA512 hash algorithms are allowed")
   end
 
-  if authParts.shortDate ~= requestDate:fmt("%Y%m%d") then
+  if authParts.shortDate ~= utils.toShortDate(requestDate) then
     return throwError("The " .. self.authHeaderName .. " header's shortDate does not match with the request date")
   end
 
@@ -246,10 +222,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return throwError("Invalid Escher key")
   end
 
-  self.apiSecret = apiSecret
-  self.date = date(requestDate)
-
-  if authParts.signature ~= calculateSignature(self, request, headersToSign) then
+  if authParts.signature ~= Signer(self):calculateSignature(request, headersToSign, date(requestDate), apiSecret) then
     return throwError("The signatures do not match")
   end
 
@@ -271,7 +244,7 @@ local function addDateHeaderIfNotExists(self, headers)
 end
 
 local function generateFullCredentials(self)
-  return string.format("%s/%s/%s", self.accessKeyId, self.date:fmt(SHORT_DATE_FORMAT), self.credentialScope)
+  return string.format("%s/%s/%s", self.accessKeyId, utils.toShortDate(self.date), self.credentialScope)
 end
 
 function Escher:generateHeader(request, headersToSign)
@@ -280,12 +253,10 @@ function Escher:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
-  local canonicalizer = Canonicalizer(self)
-
   return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
     " Credential=" .. generateFullCredentials(self) ..
-    ", SignedHeaders=" .. canonicalizer:canonicalizeSignedHeaders(request.headers, headersToSign) ..
-    ", Signature=" .. calculateSignature(self, request, headersToSign)
+    ", SignedHeaders=" .. Canonicalizer(self):canonicalizeSignedHeaders(request.headers, headersToSign) ..
+    ", Signature=" .. Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
 end
 
 function Escher:signRequest(request, headersToSign)
@@ -308,8 +279,8 @@ function Escher:generatePreSignedUrl(url, client, expires)
   local body = "UNSIGNED-PAYLOAD"
   local params = {
     Algorithm = self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
-    Credentials = string.gsub(client[1] .. "/" .. self.date:fmt(SHORT_DATE_FORMAT) .. "/" .. self.credentialScope, "/", "%%2F"),
-    Date = self.date:fmt(LONG_DATE_FORMAT),
+    Credentials = string.gsub(client[1] .. "/" .. utils.toShortDate(self.date) .. "/" .. self.credentialScope, "/", "%%2F"),
+    Date = utils.toLongDate(self.date),
     Expires = expires,
     SignedHeaders = headersToSign[1]
   }
@@ -336,11 +307,9 @@ function Escher:generatePreSignedUrl(url, client, expires)
     headers = headers,
     body = body
   }
-  local signature = calculateSignature(self, request, headersToSign)
+  local signature = Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
 
   return signedUrl .. "X-EMS-Signature=" .. signature  .. hash
 end
-
-Escher.getStringToSign = getStringToSign
 
 return Escher

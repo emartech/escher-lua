@@ -3,6 +3,7 @@ local socketUrl = require("socket.url")
 local date = require("date")
 local Escher = require("escher")
 local Canonicalizer = require("escher.canonicalizer")
+local Signer = require("escher.signer")
 
 local function readTest(filename)
   local f = io.open(filename, "r")
@@ -131,6 +132,27 @@ describe("Canonicalizer TestSuite", function()
 
 end)
 
+describe("Signer TestSuite", function()
+
+  describe("getStringToSign", function()
+
+    runTestFiles("signing", function(testFile, test)
+      it("should return the proper string to sign " .. testFile, function()
+        local config = getConfigFromTestsuite(test.config)
+        local signer = Signer:new(config)
+        local date, secret = date(config.date), config.apiSecret
+        local stringToSign = signer:getStringToSign(test.request, test.headersToSign, date, secret)
+
+        if test.expected.stringToSign then
+          assert.are.equals(test.expected.stringToSign, stringToSign)
+        end
+      end)
+    end)
+
+  end)
+
+end)
+
 describe("Escher TestSuite", function()
 
   describe("load 'GET vanilla' JSON", function()
@@ -139,21 +161,6 @@ describe("Escher TestSuite", function()
       local test = readTest("spec/aws4_testsuite/signrequest-get-vanilla.json")
 
       assert.are.equals(test.request.method, "GET")
-    end)
-
-  end)
-
-  describe("getStringToSign", function()
-
-    runTestFiles("signing", function(testFile, test)
-      it("should return the proper string to sign " .. testFile, function()
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local stringToSign = escher:getStringToSign(test.request, test.headersToSign)
-
-        if test.expected.stringToSign then
-          assert.are.equals(test.expected.stringToSign, stringToSign)
-        end
-      end)
     end)
 
   end)
