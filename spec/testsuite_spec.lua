@@ -199,7 +199,7 @@ describe("Escher TestSuite", function()
     runTestFiles("generateSignedUrl", function(testFile, test)
       it("should return the proper url string" .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local client = {test.config.accessKeyId, test.config.apiSecret}
+        local client = { test.config.accessKeyId, test.config.apiSecret }
         local signedUrl = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
 
         assert.are.equals(test.expected.url, signedUrl)
@@ -246,12 +246,12 @@ describe("Escher TestSuite", function()
 
   local function createRequestFromUrl(url)
     local parsedUrl = socketUrl.parse(url)
-    local buildedUrl = ""
+    local builtUrl = ""
     local enableBuild = false
 
-    for _,v in ipairs(socketUrl.parse_path(url)) do
+    for _, v in ipairs(socketUrl.parse_path(url)) do
       if enableBuild then
-        buildedUrl = buildedUrl .. "/" .. v
+        builtUrl = builtUrl .. "/" .. v
       elseif string.find(v, parsedUrl.host) ~= nil then
         enableBuild = true
       end
@@ -259,9 +259,11 @@ describe("Escher TestSuite", function()
 
     return {
       method = "GET",
-      url = buildedUrl,
+      url = builtUrl,
       body = "",
-      headers = {{"Host", parsedUrl.host}}
+      headers = {
+        { "Host", parsedUrl.host }
+      }
     }
   end
 
