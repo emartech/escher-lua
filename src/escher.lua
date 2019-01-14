@@ -414,6 +414,8 @@ end
 function Escher:signRequest(request, headersToSign)
   local authHeader = self:generateHeader(request, headersToSign)
 
+  addDateHeaderIfNotExists(self, request.headers)
+
   table.insert(request.headers, { self.authHeaderName, authHeader })
 end
 

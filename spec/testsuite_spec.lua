@@ -1,6 +1,7 @@
 local json = require("rapidjson")
 local Escher = require("escher")
 local socketUrl = require("socket.url")
+local date = require("date")
 
 local function readTest(filename)
   local f = io.open(filename, "r")
@@ -152,22 +153,42 @@ describe("Escher TestSuite", function()
 
   end)
 
+  local function findHeader(request, headerName)
+    for _, element in ipairs(request.headers) do
+      if element[1]:lower() == headerName:lower() then
+        return element[2]
+      end
+    end
+  end
+
+  local function trim(str)
+    return string.match(str, "^%s*(.-)%s*$")
+  end
+
+  local function dateDiffInSeconds(date1, date2)
+    return date.diff(date(trim(date1)), date(trim(date2))):spanseconds()
+  end
+
   describe("signRequest", function()
 
     runTestFiles("signing", function(testFile, test)
       it("should generate full authorization header " .. testFile, function()
         local escher = Escher:new(getConfigFromTestsuite(test.config))
-        local authHeader = ""
+
+        local dateHeaderBeforeSign = findHeader(test.request, test.config.dateHeaderName)
 
         escher:signRequest(test.request, test.headersToSign)
 
-        for _, element in ipairs(test.request.headers) do
-          if element[1] == test.config.authHeaderName then
-            authHeader = element[2]
-          end
-        end
+        local dateHeader = findHeader(test.request, test.config.dateHeaderName)
+        local authHeader = findHeader(test.request, test.config.authHeaderName)
 
         assert.are.equals(test.expected.authHeader, authHeader)
+
+        if dateHeaderBeforeSign then
+          assert.are.equals(dateHeaderBeforeSign, dateHeader)
+        else
+          assert.are.equals(0, dateDiffInSeconds(test.config.date, dateHeader))
+        end
      end)
    end)
 
