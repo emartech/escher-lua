@@ -119,7 +119,7 @@ describe("Canonicalizer TestSuite", function()
 
     runTestFiles("signing", function(testFile, test)
       it("should canonicalize the request " .. testFile, function()
-        local canonicalizer = Canonicalizer:new(getConfigFromTestsuite(test.config))
+        local canonicalizer = Canonicalizer(getConfigFromTestsuite(test.config))
         local canonicalizedRequest = canonicalizer:canonicalizeRequest(test.request, test.headersToSign)
 
         if test.expected.canonicalizedRequest then
@@ -139,7 +139,7 @@ describe("Signer TestSuite", function()
     runTestFiles("signing", function(testFile, test)
       it("should return the proper string to sign " .. testFile, function()
         local config = getConfigFromTestsuite(test.config)
-        local signer = Signer:new(config)
+        local signer = Signer(config)
         local date, secret = date(config.date), config.apiSecret
         local stringToSign = signer:getStringToSign(test.request, test.headersToSign, date, secret)
 
@@ -185,7 +185,7 @@ describe("Escher TestSuite", function()
 
     runTestFiles("signing", function(testFile, test)
       it("should generate full authorization header " .. testFile, function()
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local escher = Escher(getConfigFromTestsuite(test.config))
 
         local dateHeaderBeforeSign = findHeader(test.request, test.config.dateHeaderName)
 
@@ -210,7 +210,7 @@ describe("Escher TestSuite", function()
 
     runTestFiles("generateSignedUrl", function(testFile, test)
       it("should return the proper url string" .. testFile, function()
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local escher = Escher(getConfigFromTestsuite(test.config))
         local client = { test.config.accessKeyId, test.config.apiSecret }
         local signedUrl = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
 
@@ -238,7 +238,7 @@ describe("Escher TestSuite", function()
     runTestFiles("validation", function(testFile, test)
       it("should validate the request " .. testFile, function()
         local keyDb = makeKeyRetriever(test.keyDb)
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local escher = Escher(getConfigFromTestsuite(test.config))
         local apiKey, err = escher:authenticate(test.request, keyDb, test.mandatorySignedHeaders)
 
         if test.expected.apiKey then
@@ -284,7 +284,7 @@ describe("Escher TestSuite", function()
     runTestFiles("generateAndAuthenticate", function(testFile, test)
       it("should validate the request " .. testFile, function()
         local keyDb = makeKeyRetriever(test.keyDb)
-        local escher = Escher:new(getConfigFromTestsuite(test.config))
+        local escher = Escher(getConfigFromTestsuite(test.config))
         local client = { test.config.accessKeyId, test.config.apiSecret }
 
         test.request.url = escher:generatePreSignedUrl(test.request.url, client, test.request.expires)
