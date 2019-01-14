@@ -20,6 +20,8 @@ build = {
     type = "builtin",
     modules = {
         ["escher"] = "src/escher.lua",
+        ["escher.canonicalizer"] = "src/escher/canonicalizer.lua",
         ["escher.urlhandler"] = "src/escher/urlhandler.lua",
+        ["escher.utils"] = "src/escher/utils.lua"
     }
 }
