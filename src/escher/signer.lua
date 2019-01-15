@@ -1,6 +1,5 @@
 local crypto = require("crypto")
 local Canonicalizer = require("escher.canonicalizer")
-local urlhandler = require("escher.urlhandler")
 local utils = require("escher.utils")
 
 local Signer = {}
