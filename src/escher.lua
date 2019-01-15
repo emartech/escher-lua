@@ -33,32 +33,6 @@ setmetatable(Escher, {
   __call = Escher.new
 })
 
-local function split(str, separator)
-  local pieces = {}
-  local i = 1
-
-  for matched in string.gmatch(str, "([^" .. separator .. "]+)") do
-    pieces[i] = matched
-    i = i + 1
-  end
-
-  return pieces
-end
-
-local function merge(target, ...)
-  if not target then return target end
-
-  for _, obj in pairs({...}) do
-    if obj then
-      for k, v in pairs(obj) do
-        target[k] = v
-      end
-    end
-  end
-
-  return target
-end
-
 local function getHeaderValue(headers, headerName)
   for _, header in ipairs(headers) do
     local name = utils.trim(header[1]:lower())
@@ -92,7 +66,7 @@ end
 local function canonicalizeUrl(url)
   local canonicalizedUrl = ""
 
-  for _, value in ipairs(split(url, "&")) do
+  for _, value in ipairs(utils.split(url, "&")) do
     if not string.match(value, "Signature") then
       canonicalizedUrl = canonicalizedUrl .. value .. "&"
     end
@@ -128,7 +102,7 @@ local function isDateWithinRange(requestDate, signedDate, expires)
 end
 
 function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
-  request = merge({}, request)
+  request = utils.merge({}, request)
 
   local uri = socketurl.parse(request.url)
   local isPresignedUrl = string.match(uri.query or "", "Signature") and request.method == "GET"
@@ -169,7 +143,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return throwError("Could not parse " .. self.authHeaderName .. " header")
   end
 
-  local headersToSign = split(authParts.signedHeaders, ";")
+  local headersToSign = utils.split(authParts.signedHeaders, ";")
 
   for _, header in ipairs(headersToSign) do
     if string.lower(header) ~= header then
@@ -181,7 +155,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return throwError("The mandatorySignedHeaders parameter must be undefined or array of strings")
   end
 
-  mandatorySignedHeaders = merge({}, mandatorySignedHeaders)
+  mandatorySignedHeaders = utils.merge({}, mandatorySignedHeaders)
 
   table.insert(mandatorySignedHeaders, "host")
 
@@ -247,8 +221,8 @@ local function generateFullCredentials(self)
 end
 
 function Escher:generateHeader(request, headersToSign)
-  request = merge({}, request)
-  request.headers = merge({}, request.headers)
+  request = utils.merge({}, request)
+  request.headers = utils.merge({}, request.headers)
 
   addDateHeaderIfNotExists(self, request.headers)
 

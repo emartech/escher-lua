@@ -1,4 +1,30 @@
 
+local function split(str, separator)
+  local pieces = {}
+  local i = 1
+
+  for matched in string.gmatch(str, "([^" .. separator .. "]+)") do
+    pieces[i] = matched
+    i = i + 1
+  end
+
+  return pieces
+end
+
+local function merge(target, ...)
+  if not target then return target end
+
+  for _, obj in pairs({...}) do
+    if obj then
+      for k, v in pairs(obj) do
+        target[k] = v
+      end
+    end
+  end
+
+  return target
+end
+
 local function contains(table, element)
   for _, value in pairs(table) do
     if value:lower() == element:lower() then
@@ -22,6 +48,8 @@ local function toShortDate(date)
 end
 
 return {
+  split = split,
+  merge = merge,
   contains = contains,
   trim = trim,
   toLongDate = toLongDate,
