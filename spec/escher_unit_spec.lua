@@ -175,7 +175,7 @@ describe("Escher", function()
 
             local headersToSign = { "x-ems-date" }
 
-            local authHeader = escher:generateHeader(request, headersToSign)
+            escher:generateHeader(request, headersToSign)
 
             assert.are.same({
                 method = "GET",

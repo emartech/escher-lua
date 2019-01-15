@@ -1,4 +1,3 @@
-local crypto = require("crypto")
 local date = require("date")
 local socketurl = require("socket.url")
 local utils = require("escher.utils")
