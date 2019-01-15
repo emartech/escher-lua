@@ -63,16 +63,16 @@ local function parseQuery(query, algoPrefix)
   }
 end
 
-local function canonicalizeUrl(url)
-  local canonicalizedUrl = ""
+local function stripSignatureFromQuery(url)
+  local strippedUrl = ""
 
   for _, value in ipairs(utils.split(url, "&")) do
     if not string.match(value, "Signature") then
-      canonicalizedUrl = canonicalizedUrl .. value .. "&"
+      strippedUrl = strippedUrl .. value .. "&"
     end
   end
 
-  return string.sub(canonicalizedUrl, 1, -2)
+  return string.sub(strippedUrl, 1, -2)
 end
 
 local function parseAuthHeader(authHeader, algoPrefix)
@@ -131,7 +131,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     requestDate = date(string.match(uri.query, "Date=([A-Za-z0-9]+)&"))
     authParts = parseQuery(socketurl.unescape(uri.query), self.algoPrefix)
     expires = tonumber(string.match(uri.query, "Expires=([0-9]+)&"))
-    request.url = canonicalizeUrl(request.url)
+    request.url = stripSignatureFromQuery(request.url)
     request.body = "UNSIGNED-PAYLOAD"
   else
     requestDate = date(dateHeader)
