@@ -140,8 +140,8 @@ describe("Signer TestSuite", function()
       it("should return the proper string to sign " .. testFile, function()
         local config = getConfigFromTestsuite(test.config)
         local signer = Signer(config)
-        local date, secret = date(config.date), config.apiSecret
-        local stringToSign = signer:getStringToSign(test.request, test.headersToSign, date, secret)
+        local signDate, secret = date(config.date), config.apiSecret
+        local stringToSign = signer:getStringToSign(test.request, test.headersToSign, signDate, secret)
 
         if test.expected.stringToSign then
           assert.are.equals(test.expected.stringToSign, stringToSign)
