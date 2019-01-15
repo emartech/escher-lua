@@ -202,16 +202,18 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   return authParts.accessKeyId
 end
 
-local function addDateHeaderIfNotExists(self, headers)
-  local insertDate = true
-
+local function hasHeader(headers, headerName)
   for _, values in ipairs(headers) do
-    if values[1]:lower() == self.dateHeaderName:lower() then
-      insertDate = false
+    if values[1]:lower() == headerName:lower() then
+      return true
     end
   end
 
-  if insertDate then
+  return false
+end
+
+local function addDateHeaderIfNotExists(self, headers)
+  if not hasHeader(headers, self.dateHeaderName) then
     table.insert(headers, { self.dateHeaderName, self.date:fmt("${http}") })
   end
 end
@@ -240,46 +242,65 @@ function Escher:signRequest(request, headersToSign)
   table.insert(request.headers, { self.authHeaderName, authHeader })
 end
 
-function Escher:generatePreSignedUrl(url, client, expires)
-  expires = expires or 86400
+local ONE_DAY_IN_SECONDS = 86400
 
-  local parsedUrl = socketurl.parse(socketurl.unescape(url))
-  local host = parsedUrl.host
-  local headers = {
-    { "host", host }
-  }
-  local headersToSign = { "host" }
-  local body = "UNSIGNED-PAYLOAD"
-  local params = {
-    Algorithm = self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
-    Credentials = string.gsub(client[1] .. "/" .. utils.toShortDate(self.date) .. "/" .. self.credentialScope, "/", "%%2F"),
-    Date = utils.toLongDate(self.date),
-    Expires = expires,
-    SignedHeaders = headersToSign[1]
-  }
-  local hash = ""
-
-  if parsedUrl.fragment ~= nil then
-    hash = "#" .. parsedUrl.fragment
-    parsedUrl.fragment = ""
-    url = string.gsub(socketurl.build(parsedUrl), "#", "")
+local function getHash(parsedUrl)
+  if parsedUrl.fragment then
+    return "#" .. parsedUrl.fragment
   end
 
-  local signedUrl = url .. "&" ..
-    "X-EMS-Algorithm=" .. params.Algorithm .. "&" ..
-    "X-EMS-Credentials=" .. params.Credentials .. "&" ..
-    "X-EMS-Date=" .. params.Date .. "&" ..
-    "X-EMS-Expires=" .. params.Expires .. "&" ..
-    "X-EMS-SignedHeaders=" .. params.SignedHeaders .. "&"
+  return ""
+end
+
+local function stripHash(parsedUrl)
+  parsedUrl = utils.merge({}, parsedUrl)
+
+  parsedUrl.fragment = ""
+
+  local builtUrl = socketurl.build(parsedUrl)
+
+  return string.gsub(builtUrl, "#", "")
+end
+
+local function encodeSlashes(str)
+  return string.gsub(str, "/", "%%2F")
+end
+
+function Escher:generatePreSignedUrl(url, client, expires)
+  expires = expires or ONE_DAY_IN_SECONDS
+
+  local headersToSign = { "host" }
+  local parsedUrl = socketurl.parse(socketurl.unescape(url))
+  local hash = getHash(parsedUrl)
+
+  if #hash > 0 then
+    url = stripHash(parsedUrl)
+  end
+
+  local signedUrl = table.concat({
+    url,
+    "X-EMS-Algorithm=" .. self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
+    "X-EMS-Credentials=" .. encodeSlashes(client[1] .. "/" .. utils.toShortDate(self.date) .. "/" .. self.credentialScope),
+    "X-EMS-Date=" .. utils.toLongDate(self.date),
+    "X-EMS-Expires=" .. expires,
+    "X-EMS-SignedHeaders=" .. table.concat(headersToSign, ";")
+  }, "&") .. "&"
 
   local parsedSignedUrl = socketurl.parse(signedUrl)
+
+  local host = parsedUrl.host
+  local path, query = parsedSignedUrl.path, parsedSignedUrl.query
+
   local request = {
     host = host,
     method = "GET",
-    url = parsedSignedUrl.path .. "?" .. (parsedSignedUrl.query),
-    headers = headers,
-    body = body
+    url = path .. "?" .. query,
+    headers = {
+      { "host", host }
+    },
+    body = "UNSIGNED-PAYLOAD"
   }
+
   local signature = Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
 
   return signedUrl .. "X-EMS-Signature=" .. signature  .. hash
