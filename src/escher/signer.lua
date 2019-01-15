@@ -33,13 +33,19 @@ function Signer:getStringToSign(request, headersToSign, date)
   }, "\n")
 end
 
-function Signer:calculateSignature(request, headersToSign, date, secret)
-  local stringToSign = self:getStringToSign(request, headersToSign, date, secret)
+local function getSigningKey(self, date, secret)
   local signingKey = crypto.hmac.digest(self.hashAlgo, utils.toShortDate(date), self.algoPrefix .. secret, true)
 
   for part in string.gmatch(self.credentialScope, "[A-Za-z0-9_\\-]+") do
     signingKey = crypto.hmac.digest(self.hashAlgo, part, signingKey, true)
   end
+
+  return signingKey
+end
+
+function Signer:calculateSignature(request, headersToSign, date, secret)
+  local stringToSign = self:getStringToSign(request, headersToSign, date, secret)
+  local signingKey = getSigningKey(self, date, secret)
 
   return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)
 end
