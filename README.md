@@ -27,7 +27,7 @@ luarocks-5.2 install date 2.1.1-1
 ```
 
 Examples
------
+-------------
 
 Authentication:
 ```lua
