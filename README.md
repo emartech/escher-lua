@@ -17,13 +17,14 @@ Some tips to setup the local development environment on a Mac:
 
 ```bash
 brew install lua
+brew install luarocks
 brew install cmake
 brew install openssl
-luarocks-5.2 install busted
-luarocks-5.2 install luasocket
-luarocks-5.2 install rapidjson 0.4.5-1
-luarocks-5.2 install luacrypto 0.3.2-2 OPENSSL_INCDIR=/usr/local/Cellar/openssl/1.0.2j/include
-luarocks-5.2 install date 2.1.2-1
+luarocks install busted
+luarocks install luasocket
+luarocks install rapidjson
+luarocks install luacrypto 0.3.2-2 OPENSSL_DIR=/usr/local/opt/openssl
+luarocks install date
 ```
 
 Examples
@@ -112,7 +113,7 @@ request should now look like this:
 Run the tests
 -------------
 
-To run all the tests, use the `LUA="luajit" LUA_PATH="lib/?.lua;;" busted` command.
+To run all the tests, use the `busted` command.
 
 About Escher
 ------------
