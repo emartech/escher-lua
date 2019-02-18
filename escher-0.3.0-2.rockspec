@@ -1,8 +1,8 @@
 package = "Escher"
-version = "0.3.0-1"
+version = "0.3.0-2"
 source = {
   url = "git://github.com/emartech/escher-lua",
-  tag = "0.3.0-1",
+  tag = "0.3.0-2",
   dir = "escher-lua"
 }
 description = {
@@ -11,10 +11,8 @@ description = {
     license = "MIT"
 }
 dependencies = {
-    "luafilesystem == 1.7.0-2",
-    "rapidjson == 0.5.1-1",
     "luacrypto == 0.3.2-2",
-    "date == 2.1.2-1",
+    "date == 2.1.2-1"
 }
 build = {
     type = "builtin",
