@@ -4,6 +4,9 @@ local utils = require("escher.utils")
 local Canonicalizer = require("escher.canonicalizer")
 local Signer = require("escher.signer")
 
+local ONE_DAY_IN_SECONDS = 86400
+local UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD"
+
 local Escher = {}
 
 local meta = {
@@ -64,25 +67,26 @@ local function parseQuery(query, algoPrefix)
 end
 
 local function stripSignatureFromQuery(url)
-  local strippedUrl = ""
+  local parts = {}
 
   for _, value in ipairs(utils.split(url, "&")) do
     if not string.match(value, "Signature") then
-      strippedUrl = strippedUrl .. value .. "&"
+      table.insert(parts, value)
     end
   end
 
-  return string.sub(strippedUrl, 1, -2)
+  return table.concat(parts, "&")
 end
 
 local function parseAuthHeader(authHeader, algoPrefix)
   local hashAlgo, accessKeyId, shortDate, credentialScope, signedHeaders, signature = string.match(
     authHeader,
-    algoPrefix ..
-    "%-HMAC%-(%w+)%s+" ..
-    "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/% ]-),%s*" ..
-    "SignedHeaders=([a-zA-Z0-9%-%_%;]+),%s*" ..
-    "Signature=([a-f0-9]+)"
+    algoPrefix .. "%-HMAC%-(%w+)" .. "%s+" ..
+    table.concat({
+      "Credential=([A-Za-z0-9%-%_]+)/(%d+)/([A-Za-z0-9%-%_%/% ]-)",
+      "SignedHeaders=([a-zA-Z0-9%-%_%;]+)",
+      "Signature=([a-f0-9]+)"
+    }, ",%s*")
   )
 
   return {
@@ -132,7 +136,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     authParts = parseQuery(socketurl.unescape(uri.query), self.algoPrefix)
     expires = tonumber(string.match(uri.query, "Expires=([0-9]+)&"))
     request.url = stripSignatureFromQuery(request.url)
-    request.body = "UNSIGNED-PAYLOAD"
+    request.body = UNSIGNED_PAYLOAD
   else
     requestDate = date(dateHeader)
     authParts = parseAuthHeader(authHeader or "", self.algoPrefix)
@@ -218,8 +222,12 @@ local function addDateHeaderIfNotExists(self, headers)
   end
 end
 
-local function generateFullCredentials(self)
-  return string.format("%s/%s/%s", self.accessKeyId, utils.toShortDate(self.date), self.credentialScope)
+local function getAlgorithmId(self)
+  return self.algoPrefix .. "-HMAC-" .. self.hashAlgo
+end
+
+local function getCredentials(self)
+  return table.concat({ self.accessKeyId, utils.toShortDate(self.date), self.credentialScope }, "/")
 end
 
 function Escher:generateHeader(request, headersToSign)
@@ -228,10 +236,11 @@ function Escher:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
-  return self.algoPrefix .. "-HMAC-" .. self.hashAlgo ..
-    " Credential=" .. generateFullCredentials(self) ..
-    ", SignedHeaders=" .. Canonicalizer(self):canonicalizeSignedHeaders(request.headers, headersToSign) ..
-    ", Signature=" .. Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
+  return getAlgorithmId(self) .. " " .. table.concat({
+    "Credential=" .. getCredentials(self),
+    "SignedHeaders=" .. Canonicalizer(self):canonicalizeSignedHeaders(request.headers, headersToSign),
+    "Signature=" .. Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
+  }, ", ")
 end
 
 function Escher:signRequest(request, headersToSign)
@@ -241,8 +250,6 @@ function Escher:signRequest(request, headersToSign)
 
   table.insert(request.headers, { self.authHeaderName, authHeader })
 end
-
-local ONE_DAY_IN_SECONDS = 86400
 
 local function getHash(parsedUrl)
   if parsedUrl.fragment then
@@ -279,7 +286,7 @@ function Escher:generatePreSignedUrl(url, client, expires)
 
   local signedUrl = table.concat({
     url,
-    "X-EMS-Algorithm=" .. self.algoPrefix .. "-HMAC-" .. self.hashAlgo,
+    "X-EMS-Algorithm=" .. getAlgorithmId(self),
     "X-EMS-Credentials=" .. encodeSlashes(client[1] .. "/" .. utils.toShortDate(self.date) .. "/" .. self.credentialScope),
     "X-EMS-Date=" .. utils.toLongDate(self.date),
     "X-EMS-Expires=" .. expires,
@@ -298,7 +305,7 @@ function Escher:generatePreSignedUrl(url, client, expires)
     headers = {
       { "host", host }
     },
-    body = "UNSIGNED-PAYLOAD"
+    body = UNSIGNED_PAYLOAD
   }
 
   local signature = Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
