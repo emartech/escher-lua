@@ -1,6 +1,6 @@
 {
   "title": "should check the hash algorithm",
-  "description": "Only SHA256 and SHA512 hash algorithms are allowed.",
+  "description": "Only given hash algorithm is allowed.",
   "headersToSign": [
     "date",
     "host"
@@ -40,6 +40,6 @@
     ]
   ],
   "expected": {
-    "error": "Only SHA256 and SHA512 hash algorithms are allowed"
+    "error": "Only SHA256 hash algorithm is allowed"
   }
 }

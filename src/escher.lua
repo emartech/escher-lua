@@ -182,7 +182,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   end
 
   if authParts.hashAlgo ~= self.hashAlgo then
-    return throwError("Only SHA256 and SHA512 hash algorithms are allowed")
+    return throwError("Only " .. self.hashAlgo .. " hash algorithm is allowed")
   end
 
   if authParts.shortDate ~= utils.toShortDate(requestDate) then
