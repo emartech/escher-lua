@@ -17,6 +17,7 @@ function Escher:new(options)
   options = options or {}
 
   local object = {
+    debugInfo = options.debugInfo,
     algoPrefix = options.algoPrefix or "ESR",
     vendorKey = options.vendorKey or "ESCHER",
     hashAlgo = options.hashAlgo or "SHA256",
@@ -55,8 +56,8 @@ local function getHeaderValue(headers, headerName)
   end
 end
 
-local function throwError(error)
-  return false, error
+local function throwError(error, debugInfo)
+  return false, error, debugInfo
 end
 
 local function parseQuery(self, query)
@@ -117,9 +118,11 @@ local function parseAuthHeader(self, authHeader)
 end
 
 local function isDateWithinRange(requestDate, signedDate, maxDiffInSeconds)
-  local diff = math.abs(date.diff(requestDate, signedDate):spanseconds())
+  return math.abs(date.diff(requestDate, signedDate):spanseconds()) <= maxDiffInSeconds
+end
 
-  return diff <= maxDiffInSeconds
+local function getTimestampInSeconds(dateObject)
+    return math.floor(date.diff(dateObject, date.epoch()):spanseconds())
 end
 
 function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
@@ -128,9 +131,9 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   local query = socketurl.parse(request.url).query
   local isPresignedUrl = request.method == "GET" and query and string.match(query, getQueryParamEscaped(self ,"Signature"))
 
+  local requestDate
   local authParts
   local expires
-  local requestDate
 
   if isPresignedUrl then
     requestDate = date(string.match(query, getQueryParamEscaped(self ,"Date") .. "=([A-Za-z0-9]+)"))
@@ -197,7 +200,13 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   end
 
   if authParts.credentialScope ~= self.credentialScope then
-    return throwError("The credential scope is invalid")
+    local debugInfo
+
+    if self.debugInfo then
+      debugInfo = self.credentialScope
+    end
+
+    return throwError("The credential scope is invalid", debugInfo)
   end
 
   if authParts.hashAlgo ~= self.hashAlgo then
@@ -209,7 +218,17 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   end
 
   if not isDateWithinRange(self.date, requestDate, self.clockSkew + expires) then
-    return throwError("The request date is not within the accepted time range")
+    local debugInfo
+
+    if self.debugInfo then
+      debugInfo = table.concat({
+        "server timestamp: " .. getTimestampInSeconds(self.date),
+        "request timestamp: " .. getTimestampInSeconds(requestDate),
+        "clock skew: " .. self.clockSkew
+      }, "\n")
+    end
+
+    return throwError("The request date is not within the accepted time range", debugInfo)
   end
 
   local apiSecret = getApiSecret(authParts.accessKeyId)
@@ -219,7 +238,13 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   end
 
   if authParts.signature ~= Signer(self):calculateSignature(request, headersToSign, date(requestDate), apiSecret) then
-    return throwError("The signatures do not match")
+    local debugInfo
+
+    if self.debugInfo then
+      debugInfo = Canonicalizer(self):canonicalizeRequest(request, headersToSign)
+    end
+
+    return throwError("The signatures do not match", debugInfo)
   end
 
   return authParts.accessKeyId

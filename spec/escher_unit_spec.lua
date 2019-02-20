@@ -147,6 +147,150 @@ describe("Escher", function()
 
         end)
 
+        context("debug mode", function()
+
+            local function keyDb()
+                return "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
+            end
+
+            local config, authHeader, request
+
+            local function replaceAuthHeader(pattern, replace)
+                authHeader[2] = string.gsub(authHeader[2], pattern, replace)
+            end
+
+            before_each(function()
+                config = {
+                    algoPrefix = "AWS4",
+                    vendorKey = "AWS4",
+                    hashAlgo = "SHA256",
+                    credentialScope = "us-east-1/host/aws4_request",
+                    authHeaderName = "X-EMS-Auth",
+                    dateHeaderName = "X-EMS-Date",
+                    date = "2011-09-09T23:36:00.000Z",
+                    apiSecret = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                    accessKeyId = "AKIDEXAMPLE"
+                }
+
+                authHeader = { "X-EMS-Auth", "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20110909/us-east-1/host/aws4_request, SignedHeaders=x-ems-date;host, Signature=3a2b15801d517d0010be640f0685fa60b5d793396be38e0566ede3d334554479" }
+
+                request = {
+                    method = "GET",
+                    url = "/",
+                    headers = {
+                        { "X-EMS-Date", "20110909T233600Z" },
+                        { "Host", "host.foo.com" },
+                        authHeader
+                    },
+                    body = ""
+                }
+            end)
+
+            context("is enabled", function()
+
+                before_each(function()
+                    config.debugInfo = true
+                end)
+
+                it("should return canonicalized request if signatures do not match", function()
+                    local escher = Escher(config)
+
+                    replaceAuthHeader("Signature=.*", "Signature=bad_signature")
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The signatures do not match", err)
+                    assert.is_equal(table.concat({
+                        "GET",
+                        "/",
+                        "",
+                        "host:host.foo.com",
+                        "x-ems-date:20110909T233600Z",
+                        "",
+                        "host;x-ems-date",
+                        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                    }, "\n"), debugInfo)
+                end)
+
+                it("should return date info if request is out of time range", function()
+                    config.date = "2011-09-10T23:36:00.000Z"
+                    config.clockSkew = 300
+
+                    local escher = Escher(config)
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The request date is not within the accepted time range", err)
+                    assert.is_equal(table.concat({
+                        "server timestamp: 1315697760",
+                        "request timestamp: 1315611360",
+                        "clock skew: 300"
+                    }, "\n"), debugInfo)
+                end)
+
+                it("should return credential scope if bad credential scope used", function()
+                    config.credentialScope = "us-east-2/host/aws4_request"
+
+                    local escher = Escher(config)
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The credential scope is invalid", err)
+                    assert.is_equal("us-east-2/host/aws4_request", debugInfo)
+                end)
+
+            end)
+
+            context("is disabled", function()
+
+                before_each(function()
+                    config.debugInfo = false
+                end)
+
+                it("should not return debug info if signatures do not match", function()
+                    local escher = Escher(config)
+
+                    replaceAuthHeader("Signature=.*", "Signature=bad_signature")
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The signatures do not match", err)
+                    assert.is_nil(debugInfo)
+                end)
+
+                it("should not return debug info if request is out of time range", function()
+                    config.date = "2011-09-10T23:36:00.000Z"
+                    config.clockSkew = 300
+
+                    local escher = Escher(config)
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The request date is not within the accepted time range", err)
+                    assert.is_nil(debugInfo)
+                end)
+
+                it("should not return debug info if bad credential scope used", function()
+                    config.credentialScope = "us-east-2/host/aws4_request"
+
+                    local escher = Escher(config)
+
+                    local success, err, debugInfo = escher:authenticate(request, keyDb)
+
+                    assert.is_false(success)
+                    assert.is_equal("The credential scope is invalid", err)
+                    assert.is_nil(debugInfo)
+                end)
+
+            end)
+
+        end)
+
     end)
 
     describe("#generateHeader", function()
