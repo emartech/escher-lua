@@ -68,7 +68,8 @@ local function runTestFiles(group, fn)
       "spec/emarsys_testsuite/signrequest-date-header-should-be-signed-headers.json",
       "spec/emarsys_testsuite/signrequest-only-sign-specified-headers.json",
       "spec/emarsys_testsuite/signrequest-support-custom-config.json",
-      "spec/emarsys_testsuite/signrequest-support-custom-config-with-customer-id.json"
+      "spec/emarsys_testsuite/signrequest-support-custom-config-with-customer-id.json",
+      "spec/emarsys_testsuite/signrequest-empty-query-param.json"
     },
     validation = {
       "spec/emarsys_testsuite/authenticate-error-date-header-auth-header-date-not-equal.json",
