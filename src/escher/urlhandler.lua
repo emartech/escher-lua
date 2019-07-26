@@ -51,10 +51,9 @@ end
 function M.parseQuery(str)
   local values = {}
   for m in str:gmatch("[^&]+") do
-    local key, val = m:match("([^=]+)=?(.*)")
+    local key, val = m:match("([^=]*)=?(.*)")
     key = decode(key)
     key = key:gsub('=+.*$', "")
-    val = val or ''
     val = val:gsub('^=+', "")
     table.insert(values, { key, decode(val) })
   end
