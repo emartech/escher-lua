@@ -1,4 +1,4 @@
-local crypto = require("crypto")
+local crypto = require("escher.crypto")
 local urlhandler = require("escher.urlhandler")
 local utils = require("escher.utils")
 

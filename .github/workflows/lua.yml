@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
          luaVersion: ["5.1.5", "5.2.4", "luajit"]
-    
+
     steps:
     - uses: actions/checkout@master
     - uses: leafo/gh-actions-lua@v8.0.0
@@ -27,7 +27,7 @@ jobs:
         luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
         luarocks install busted
         luarocks install rapidjson 0.7.1
-        luarocks install luacrypto 0.3.2-2
+        luarocks install luaossl 20200709-0
         luarocks install date 2.1.2-1
     - name: Test
       run: busted spec

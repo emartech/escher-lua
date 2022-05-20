@@ -1,8 +1,8 @@
 package = "Escher"
-version = "0.4.0-1"
+version = "0.4.1-1"
 source = {
   url = "git://github.com/emartech/escher-lua",
-  tag = "0.4.0-1",
+  tag = "0.4.1-1",
   dir = "escher-lua"
 }
 description = {
@@ -11,7 +11,7 @@ description = {
     license = "MIT"
 }
 dependencies = {
-    "luacrypto == 0.3.2-2",
+    "luaossl == 20200709-0",
     "date == 2.1.2-1"
 }
 build = {
@@ -21,6 +21,7 @@ build = {
         ["escher.canonicalizer"] = "src/escher/canonicalizer.lua",
         ["escher.signer"] = "src/escher/signer.lua",
         ["escher.urlhandler"] = "src/escher/urlhandler.lua",
-        ["escher.utils"] = "src/escher/utils.lua"
+        ["escher.utils"] = "src/escher/utils.lua",
+        ["escher.crypto"] = "src/escher/crypto.lua"
     }
 }

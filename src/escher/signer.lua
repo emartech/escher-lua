@@ -1,4 +1,4 @@
-local crypto = require("crypto")
+local crypto = require("escher.crypto")
 local Canonicalizer = require("escher.canonicalizer")
 local utils = require("escher.utils")
 
@@ -44,7 +44,7 @@ local function getSigningKey(self, date, secret)
 end
 
 function Signer:calculateSignature(request, headersToSign, date, secret)
-  local stringToSign = self:getStringToSign(request, headersToSign, date, secret)
+  local stringToSign = self:getStringToSign(request, headersToSign, date)
   local signingKey = getSigningKey(self, date, secret)
 
   return crypto.hmac.digest(self.hashAlgo, stringToSign, signingKey, false)

@@ -19,13 +19,15 @@ Some tips to setup the local development environment on a Mac:
 brew install lua
 brew install luarocks
 brew install cmake
-brew install openssl
+brew install openssl@1.1
 luarocks install busted
 luarocks install luasocket
 luarocks install rapidjson
-luarocks install luacrypto 0.3.2-2 OPENSSL_DIR=/usr/local/opt/openssl
+luarocks install luaossl OPENSSL_DIR=$(brew --prefix)/opt/openssl@1.1/ CRYPTO_DIR=$(brew --prefix)/opt/openssl@1.1/
 luarocks install date
 ```
+
+Note: openssl@1.1 is used from brew here, until luaossl fixes this issue: https://github.com/wahern/luaossl/issues/195
 
 Examples
 -------------
