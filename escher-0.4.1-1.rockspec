@@ -11,7 +11,7 @@ description = {
     license = "MIT"
 }
 dependencies = {
-    "luaossl == 20200709-0",
+    "luaossl == 20181207-0",
     "date == 2.1.2-1"
 }
 build = {
