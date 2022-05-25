@@ -1,3 +1,7 @@
+local openssl = require("resty.openssl")
+
+assert(openssl.load_library())
+
 local json = require("rapidjson")
 local socketUrl = require("socket.url")
 local date = require("date")
