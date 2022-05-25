@@ -1,5 +1,5 @@
-local digest = require("openssl.digest")
-local hmac = require("openssl.hmac")
+local digest = require("resty.openssl.digest")
+local hmac = require("resty.openssl.hmac")
 
 local function binaryToHex(char)
   return string.format("%.2x", string.byte(char))

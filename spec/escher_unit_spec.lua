@@ -1,3 +1,7 @@
+local openssl = require("resty.openssl")
+
+assert(openssl.load_library())
+
 local Escher = require("escher")
 
 describe("Escher", function()
