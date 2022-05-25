@@ -28,7 +28,7 @@ jobs:
         tar zxpf luarocks-3.8.0.tar.gz && \
         cd luarocks-3.8.0 && \
         ./configure && \
-        make && make install && \
+        make && sudo make install && \
         cd .. && \
         rm -rf luarocks-3.8.0 && \
         rm luarocks-3.8.0.tar.gz && \
