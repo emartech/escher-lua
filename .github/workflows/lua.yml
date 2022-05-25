@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-         luaVersion: ["5.1.5", "5.2.4", "luajit"]
+         luaVersion: ["luajit"]
 
     steps:
     - uses: actions/checkout@master
@@ -22,12 +22,20 @@ jobs:
     - uses: leafo/gh-actions-luarocks@v4.0.0
     - name: Install
       run: |
-        sudo apt-get install libssl1.0-dev
-        luarocks install --server=http://luarocks.org/dev openssl
-        luarocks install luasec OPENSSL_LIBDIR=/usr/lib/x86_64-linux-gnu
-        luarocks install busted
-        luarocks install rapidjson 0.7.1
-        luarocks install luaossl 20200709-0
+        apt update && \
+        apt install -y build-essential libreadline-dev zip unzip cmake wget luajit libluajit-5.1-dev && \
+        wget https://luarocks.org/releases/luarocks-3.8.0.tar.gz && \
+        tar zxpf luarocks-3.8.0.tar.gz && \
+        cd luarocks-3.8.0 && \
+        ./configure && \
+        make && make install && \
+        cd .. && \
+        rm -rf luarocks-3.8.0 && \
+        rm luarocks-3.8.0.tar.gz && \
+        luarocks install busted && \
+        luarocks install rapidjson 0.7.1 && \
+        luarocks install luasocket && \
+        luarocks install lua-resty-openssl 0.8.8-1 && \
         luarocks install date 2.1.2-1
     - name: Test
       run: busted spec
