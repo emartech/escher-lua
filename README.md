@@ -8,26 +8,22 @@ We are using it for our OpenResty based API gateway server for authenticating th
 Prerequisite
 ------------
 
-In order to run the tests, Lua, LuaRocks and some libraries must be installed.
+In order to run the tests, Docker must be installed.
 
 Setup
 -----
 
-Some tips to setup the local development environment on a Mac:
+Some tips to setup the local development environment:
 
 ```bash
-brew install lua
-brew install luarocks
-brew install cmake
-brew install openssl@1.1
-luarocks install busted
-luarocks install luasocket
-luarocks install rapidjson
-luarocks install luaossl OPENSSL_DIR=$(brew --prefix)/opt/openssl@1.1/ CRYPTO_DIR=$(brew --prefix)/opt/openssl@1.1/
-luarocks install date
+make build
 ```
 
-Note: openssl@1.1 is used from brew here, until luaossl fixes this issue: https://github.com/wahern/luaossl/issues/195
+Running tests
+-----
+```bash
+make tests
+```
 
 Examples
 -------------
@@ -111,11 +107,6 @@ request should now look like this:
 }
 --]]
 ```
-
-Run the tests
--------------
-
-To run all the tests, use the `busted` command.
 
 About Escher
 ------------
