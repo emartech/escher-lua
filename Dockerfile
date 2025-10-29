@@ -1,7 +1,7 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 RUN apt update && \
-    apt install -y build-essential libreadline-dev zip unzip cmake wget luajit libluajit-5.1-dev && \
+    DEBIAN_FRONTEND=noninteractive apt install -y build-essential libreadline-dev zip unzip cmake wget luajit libluajit-5.1-dev && \
     wget https://github.com/luarocks/luarocks/releases/download/v3.12.2/luarocks-3.12.2.tar.gz && \
     tar zxpf luarocks-3.12.2.tar.gz && \
     cd luarocks-3.12.2 && \
