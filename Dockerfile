@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 RUN apt update && \
     DEBIAN_FRONTEND=noninteractive apt install -y build-essential libreadline-dev zip unzip cmake wget luajit libluajit-5.1-dev && \
