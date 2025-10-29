@@ -17,9 +17,10 @@ function Escher:new(options)
   options = options or {}
 
   local object = {
-    debugInfo = options.debugInfo,
+    debugInfo = {},
+    returnDebugInfoOnError = options.debugInfo,
     algoPrefix = options.algoPrefix or "ESR",
-    vendorKey = options.vendorKey or "ESCHER",
+    vendorKey = options.vendorKey or "Escher",
     hashAlgo = options.hashAlgo or "SHA256",
     apiSecret = options.apiSecret,
     accessKeyId = options.accessKeyId,
@@ -127,6 +128,19 @@ end
 
 function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   request = utils.merge({}, request)
+  request.method = string.upper(request.method)
+
+  if not utils.contains({"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"}, request.method) then
+    return throwError("The request method is invalid")
+  end
+
+  if utils.contains({"POST", "PUT", "PATCH"}, request.method) and not request.body then
+    return throwError("The request body shouldn't be empty if the request method is " .. request.method)
+  end
+
+  if utils.startsWith(request.url, "http://") or utils.startsWith(request.url, "https://") then
+    return throwError("The request url shouldn't contains http or https")
+  end
 
   local query = socketurl.parse(request.url).query
   local isPresignedUrl = request.method == "GET" and query and string.match(query, getQueryParamEscaped(self ,"Signature"))
@@ -166,7 +180,7 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   end
 
   if not authParts.hashAlgo then
-    return throwError("Could not parse " .. self.authHeaderName .. " header")
+    return throwError("Could not parse auth header")
   end
 
   local headersToSign = utils.split(authParts.signedHeaders, ";")
@@ -202,25 +216,25 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
   if authParts.credentialScope ~= self.credentialScope then
     local debugInfo
 
-    if self.debugInfo then
+    if self.returnDebugInfoOnError then
       debugInfo = self.credentialScope
     end
 
     return throwError("The credential scope is invalid", debugInfo)
   end
 
-  if authParts.hashAlgo ~= self.hashAlgo then
-    return throwError("Only " .. self.hashAlgo .. " hash algorithm is allowed")
+  if not utils.contains({"SHA256", "SHA512"}, authParts.hashAlgo) then
+    return throwError("Only SHA256 and SHA512 hash algorithms are allowed")
   end
 
   if authParts.shortDate ~= utils.toShortDate(requestDate) then
-    return throwError("The " .. self.authHeaderName .. " header's shortDate does not match with the request date")
+    return throwError("The credential date does not match with the request date")
   end
 
   if not isDateWithinRange(self.date, requestDate, self.clockSkew + expires) then
     local debugInfo
 
-    if self.debugInfo then
+    if self.returnDebugInfoOnError then
       debugInfo = table.concat({
         "server timestamp: " .. getTimestampInSeconds(self.date),
         "request timestamp: " .. getTimestampInSeconds(requestDate),
@@ -237,10 +251,15 @@ function Escher:authenticate(request, getApiSecret, mandatorySignedHeaders)
     return throwError("Invalid Escher key")
   end
 
-  if authParts.signature ~= Signer(self):calculateSignature(request, headersToSign, date(requestDate), apiSecret) then
+  local signer = Signer(self)
+  local calculatedSignature = signer:calculateSignature(request, headersToSign, date(requestDate), apiSecret)
+  self.debugInfo['stringToSign'] = signer.debugInfo['stringToSign']
+  self.debugInfo['canonicalizedRequest'] = signer.debugInfo['canonicalizedRequest']
+
+  if authParts.signature ~= calculatedSignature then
     local debugInfo
 
-    if self.debugInfo then
+    if self.returnDebugInfoOnError then
       debugInfo = Canonicalizer(self):canonicalizeRequest(request, headersToSign)
     end
 
@@ -262,7 +281,13 @@ end
 
 local function addDateHeaderIfNotExists(self, headers)
   if not hasHeader(headers, self.dateHeaderName) then
-    table.insert(headers, { self.dateHeaderName, self.date:fmt("${http}") })
+    local value
+    if self.dateHeaderName == 'Date' then
+      value = self.date:fmt("${http}")
+    else
+      value = utils.toLongDate(self.date)
+    end
+    table.insert(headers, { self.dateHeaderName, value })
   end
 end
 
@@ -280,19 +305,39 @@ function Escher:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
-  return getAlgorithmId(self) .. " " .. table.concat({
+  local signer = Signer(self)
+  local authHeaderValue = getAlgorithmId(self) .. " " .. table.concat({
     "Credential=" .. getCredentials(self),
     "SignedHeaders=" .. Canonicalizer(self):canonicalizeSignedHeaders(request.headers, headersToSign),
-    "Signature=" .. Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
+    "Signature=" .. signer:calculateSignature(request, headersToSign, self.date, self.apiSecret)
   }, ", ")
+
+  self.debugInfo['authHeaderValue'] = authHeaderValue
+  self.debugInfo['stringToSign'] = signer.debugInfo['stringToSign']
+  self.debugInfo['canonicalizedRequest'] = signer.debugInfo['canonicalizedRequest']
+
+  return authHeaderValue
 end
 
 function Escher:signRequest(request, headersToSign)
+  if not self.apiSecret then
+    return throwError("Invalid Escher key")
+  end
+
+  if not utils.contains({"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"}, request.method) then
+    return throwError("The request method is invalid")
+  end
+
+  if utils.startsWith(request.url, "http://") or utils.startsWith(request.url, "https://") then
+    return throwError("The request url shouldn't contains http or https")
+  end
+
   local authHeader = self:generateHeader(request, headersToSign)
 
   addDateHeaderIfNotExists(self, request.headers)
 
   table.insert(request.headers, { self.authHeaderName, authHeader })
+  return true
 end
 
 local function getHash(parsedUrl)
@@ -330,8 +375,13 @@ function Escher:generatePreSignedUrl(url, client, expires)
 
   local fullCredentials = encodeSlashes(client[1] .. "/" .. utils.toShortDate(self.date) .. "/" .. self.credentialScope)
 
-  local signedUrl = table.concat({
-    url,
+  local signedUrl = url
+  if string.find(signedUrl, "?") then
+    signedUrl = signedUrl .. "&"
+  else
+    signedUrl = signedUrl .. "?"
+  end
+  signedUrl = signedUrl .. table.concat({
     getQueryParam(self, "Algorithm") .. "=" .. getAlgorithmId(self),
     getQueryParam(self, "Credentials") .. "=" .. fullCredentials,
     getQueryParam(self, "Date") .. "=" .. utils.toLongDate(self.date),
@@ -342,18 +392,30 @@ function Escher:generatePreSignedUrl(url, client, expires)
   local parsedSignedUrl = socketurl.parse(signedUrl)
 
   local host = parsedUrl.host
+  if parsedUrl.port then
+    host = host .. ':' .. parsedUrl.port
+  end
+  local query
+  if parsedSignedUrl.query then
+    query = "?" .. parsedSignedUrl.query
+  else
+    query = ""
+  end
 
   local request = {
     host = host,
     method = "GET",
-    url = parsedSignedUrl.path .. "?" .. parsedSignedUrl.query,
+    url = parsedSignedUrl.path .. query,
     headers = {
       { "host", host }
     },
     body = UNSIGNED_PAYLOAD
   }
 
-  local signature = Signer(self):calculateSignature(request, headersToSign, self.date, self.apiSecret)
+  local signer = Signer(self)
+  local signature = signer:calculateSignature(request, headersToSign, self.date, self.apiSecret)
+  self.debugInfo['stringToSign'] = signer.debugInfo['stringToSign']
+  self.debugInfo['canonicalizedRequest'] = signer.debugInfo['canonicalizedRequest']
 
   return signedUrl .. getQueryParam(self, "Signature") .."=" .. signature  .. hash
 end

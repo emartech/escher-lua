@@ -1,7 +1,7 @@
 .PHONY: build test
 
 build:
-	docker-compose build
+	docker compose build
 
 test:
-	docker-compose run --rm app busted spec
+	docker compose run --rm app busted spec

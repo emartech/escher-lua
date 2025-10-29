@@ -35,6 +35,10 @@ local function contains(table, element)
   return false
 end
 
+local function startsWith(str, start)
+    return str:sub(1, #start) == start
+end
+
 local function trim(str)
   return string.match(str, "^%s*(.-)%s*$")
 end
@@ -51,6 +55,7 @@ return {
   split = split,
   merge = merge,
   contains = contains,
+  startsWith = startsWith,
   trim = trim,
   toLongDate = toLongDate,
   toShortDate = toShortDate

@@ -14,7 +14,7 @@ local function decode(str)
 end
 
 local function encode(str)
-  return (str:gsub("([^A-Za-z0-9%_%.%-%~])", function(v)
+  return (str:gsub("([^A-Za-z0-9%_%.%-%~%!%*])", function(v)
     return string.upper(string.format("%%%02x", string.byte(v)))
   end))
 end
